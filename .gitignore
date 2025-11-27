@@ -1,0 +1,44 @@
+# Raiz monorepo FaktuGo
+
+# Dependencias
+node_modules/
+**/node_modules/
+
+# Builds Next.js (web)
+/web/.next/
+/web/out/
+/web/build/
+/web/.vercel/
+
+# Builds React Native / Expo (mobile)
+/mobile/.expo/
+/mobile/dist/
+/mobile/web-build/
+/mobile/ios/
+/mobile/android/
+
+# Archivos de entorno (no subir claves ni URLs privadas)
+.env
+.env.*
+**/.env
+**/.env.*
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# SO / varios
+.DS_Store
+*.pem
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# TypeScript artefactos
+*.tsbuildinfo
+
+# Otros
+*.orig.*
