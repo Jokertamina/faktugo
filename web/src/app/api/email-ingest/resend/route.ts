@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabaseServer";
 import { computePeriodFromDate } from "@/lib/invoices";
-import { Resend } from "resend";
 
 type ResendAttachmentMeta = {
   id: string;
@@ -95,29 +94,34 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true, matchedAliases: 0 });
     }
 
-    const resend = new Resend(resendApiKey);
+    const listRes = await fetch(
+      `https://api.resend.com/emails/${encodeURIComponent(data.email_id)}/attachments`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${resendApiKey}`,
+        },
+      }
+    );
 
-    const {
-      data: receivedAttachments,
-      error: receivedAttachmentsError,
-    } = await (resend as any).attachments.receiving.list({
-      emailId: data.email_id,
-    });
-
-    if (receivedAttachmentsError) {
-      console.error("Error al listar adjuntos desde Resend:", receivedAttachmentsError);
+    if (!listRes.ok) {
+      console.error("No se pudo listar adjuntos desde Resend", await listRes.text());
       return NextResponse.json(
         { ok: false, error: "No se pudieron obtener los adjuntos desde Resend" },
         { status: 500 }
       );
     }
 
+    const listJson = (await listRes.json().catch(() => null)) as
+      | { data?: ResendReceivedAttachment[] }
+      | null;
+
+    const receivedAttachments = Array.isArray(listJson?.data) ? listJson!.data : [];
+
     const attachmentsById = new Map<string, ResendReceivedAttachment>();
-    if (Array.isArray(receivedAttachments)) {
-      for (const att of receivedAttachments as any[]) {
-        if (att && att.id) {
-          attachmentsById.set(att.id as string, att as ResendReceivedAttachment);
-        }
+    for (const att of receivedAttachments) {
+      if (att && att.id) {
+        attachmentsById.set(att.id, att);
       }
     }
 
