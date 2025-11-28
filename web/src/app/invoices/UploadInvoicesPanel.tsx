@@ -25,12 +25,26 @@ function formatSize(bytes: number): string {
   return `${bytes} B`;
 }
 
-export default function UploadInvoicesPanel() {
+type UploadInvoicesPanelProps = {
+  hasGestoriaEmail: boolean;
+  autoSendIngested: boolean;
+};
+
+export default function UploadInvoicesPanel({
+  hasGestoriaEmail,
+  autoSendIngested,
+}: UploadInvoicesPanelProps) {
   const router = useRouter();
   const [files, setFiles] = useState<LocalFileState[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+  const [archivalOnly, setArchivalOnly] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [sendToGestoria, setSendToGestoria] = useState(false);
+  const [showPurposeDialog, setShowPurposeDialog] = useState(false);
+  const [purpose, setPurpose] = useState<"archive" | "gestoria">(() =>
+    hasGestoriaEmail && autoSendIngested ? "gestoria" : "archive"
+  );
 
   function addFiles(selected: File[]) {
     setError(null);
@@ -57,6 +71,10 @@ export default function UploadInvoicesPanel() {
     }
 
     setFiles(next);
+
+    if (!existing.length && next.length) {
+      setShowPurposeDialog(true);
+    }
   }
 
   function handleInputChange(event: React.ChangeEvent<HTMLInputElement>) {
@@ -82,6 +100,28 @@ export default function UploadInvoicesPanel() {
     setFiles([]);
     setError(null);
     setInfo(null);
+    setArchivalOnly(false);
+    setSendToGestoria(false);
+    setPurpose("archive");
+  }
+
+  function applyPurposeSelection(choice: "archive" | "gestoria") {
+    if (choice === "archive") {
+      setArchivalOnly(true);
+      setSendToGestoria(false);
+    } else {
+      setArchivalOnly(false);
+      if (hasGestoriaEmail) {
+        setSendToGestoria(true);
+      } else {
+        setSendToGestoria(false);
+      }
+    }
+  }
+
+  function handleConfirmPurpose() {
+    applyPurposeSelection(purpose);
+    setShowPurposeDialog(false);
   }
 
   async function handleUpload() {
@@ -99,6 +139,14 @@ export default function UploadInvoicesPanel() {
     const formData = new FormData();
     for (const item of pending) {
       formData.append("files", item.file, item.name);
+    }
+
+    if (archivalOnly) {
+      formData.append("archivalOnly", "true");
+    }
+
+    if (sendToGestoria) {
+      formData.append("sendToGestoria", "true");
     }
 
     const updated: LocalFileState[] = files.map((f) =>
@@ -241,6 +289,83 @@ export default function UploadInvoicesPanel() {
           </button>
         </div>
       </div>
+
+      {showPurposeDialog && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60">
+          <div className="w-full max-w-sm rounded-2xl border border-slate-700 bg-[#020617] p-4 text-xs text-slate-200 shadow-xl">
+            <h3 className="text-sm font-semibold text-slate-50">
+              ¿Qué quieres hacer con estas facturas?
+            </h3>
+            <p className="mt-1 text-[11px] text-slate-400">
+              {hasGestoriaEmail
+                ? "Elige si son solo para almacenarlas o si quieres usarlas para tu gestoria."
+                : "Aun no has configurado el email de tu gestoria; de momento solo podremos subir las facturas."}
+            </p>
+            <div className="mt-3 space-y-2">
+              <label className="flex items-start gap-2">
+                <input
+                  type="radio"
+                  className="mt-0.5 h-3 w-3 rounded border-slate-600 bg-slate-900 text-[#22CC88] focus:ring-0"
+                  checked={purpose === "archive"}
+                  onChange={() => setPurpose("archive")}
+                />
+                <div>
+                  <p>Solo almacenarlas en FaktuGo (la gestoria ya las tiene).</p>
+                  <p className="text-[10px] text-slate-500">
+                    Se marcaran como "Solo almacenadas" y no se enviaran a tu gestoria.
+                  </p>
+                </div>
+              </label>
+              <label className="flex items-start gap-2">
+                <input
+                  type="radio"
+                  className="mt-0.5 h-3 w-3 rounded border-slate-600 bg-slate-900 text-[#22CC88] focus:ring-0"
+                  checked={purpose === "gestoria"}
+                  onChange={() => setPurpose("gestoria")}
+                  disabled={!hasGestoriaEmail}
+                />
+                <div className={hasGestoriaEmail ? "" : "opacity-60"}>
+                  <p>
+                    {hasGestoriaEmail
+                      ? autoSendIngested
+                        ? "Subirlas y enviarlas automaticamente a tu gestoria."
+                        : "Subirlas y enviarlas ahora a tu gestoria."
+                      : "Subirlas para tu gestoria (no se enviaran hasta que configures su email)."}
+                  </p>
+                  <p className="text-[10px] text-slate-500">
+                    {hasGestoriaEmail
+                      ? "Se usara el email de tu gestoria configurado en tu perfil."
+                      : "Configura el email de tu gestoria en tu cuenta para poder enviarlas."}
+                  </p>
+                </div>
+              </label>
+            </div>
+            <div className="mt-4 flex justify-end gap-2 text-[11px]">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowPurposeDialog(false);
+                  if (!files.length) {
+                    setArchivalOnly(false);
+                    setSendToGestoria(false);
+                    setPurpose("archive");
+                  }
+                }}
+                className="rounded-full border border-slate-700 px-3 py-1 text-slate-200 hover:border-slate-500 hover:bg-slate-900"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmPurpose}
+                className="rounded-full bg-[#22CC88] px-4 py-1.5 font-semibold text-slate-900 shadow-lg shadow-emerald-500/30 hover:bg-[#18a96f]"
+              >
+                Continuar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

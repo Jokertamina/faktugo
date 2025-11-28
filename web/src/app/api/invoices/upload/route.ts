@@ -15,6 +15,18 @@ export async function POST(request: Request) {
   const formData = await request.formData();
   const entries = formData.getAll("files");
 
+  const archivalOnlyRaw = formData.get("archivalOnly");
+  const archivalOnly =
+    archivalOnlyRaw === "true" ||
+    archivalOnlyRaw === "1" ||
+    archivalOnlyRaw === "on";
+
+  const sendToGestoriaRaw = formData.get("sendToGestoria");
+  const sendToGestoria =
+    sendToGestoriaRaw === "true" ||
+    sendToGestoriaRaw === "1" ||
+    sendToGestoriaRaw === "on";
+
   if (!entries.length) {
     return NextResponse.json({ error: "No se han enviado archivos" }, { status: 400 });
   }
@@ -31,6 +43,34 @@ export async function POST(request: Request) {
   }
 
   const results: { originalName: string; id?: string; error?: string }[] = [];
+
+  let gestoriaEmail: string | null = null;
+  let clientDisplayName: string = "Tu cliente";
+  const resendApiKey = process.env.RESEND_API_KEY || null;
+  const fromEmail = process.env.GESTORIA_FROM_EMAIL || null;
+
+  if (sendToGestoria && resendApiKey && fromEmail) {
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("gestoria_email, first_name, last_name, display_name")
+      .eq("id", user.id)
+      .maybeSingle<{
+        gestoria_email: string | null;
+        first_name: string | null;
+        last_name: string | null;
+        display_name: string | null;
+      }>();
+
+    if (profileError) {
+      console.error("Error al obtener perfil para envio a gestoria en subida:", profileError);
+    }
+
+    gestoriaEmail = (profile?.gestoria_email ?? "").trim() || null;
+    const first = (profile?.first_name ?? "").trim();
+    const last = (profile?.last_name ?? "").trim();
+    const combined = `${first} ${last}`.trim();
+    clientDisplayName = combined || profile?.display_name || user.email || "Tu cliente";
+  }
 
   for (const entry of entries) {
     if (typeof entry === "string") {
@@ -112,6 +152,7 @@ export async function POST(request: Request) {
         file_mime_type: mime,
         file_size: file.size,
         upload_source: "web_upload",
+        archival_only: archivalOnly,
       })
       .select("id")
       .maybeSingle();
@@ -122,7 +163,89 @@ export async function POST(request: Request) {
       continue;
     }
 
-    results.push({ originalName, id: insert.data.id as string });
+    const invoiceId = insert.data.id as string;
+
+    if (sendToGestoria && resendApiKey && fromEmail && gestoriaEmail) {
+      try {
+        const { data: signed, error: signedError } = await supabase.storage
+          .from("invoices")
+          .createSignedUrl(storagePath, 60 * 60 * 24 * 7);
+
+        if (signedError || !signed?.signedUrl) {
+          console.error(
+            "No se pudo crear URL firmada para envio a gestoria en subida:",
+            signedError
+          );
+        } else {
+          const fileUrl = signed.signedUrl;
+          const subject = `Factura subida desde la web - ${clientDisplayName} - ${dateStr}`;
+          const html = `
+      <p>Hola,</p>
+      <p>
+        Su cliente <strong>${clientDisplayName}</strong> ha subido una factura a traves de
+        <strong>FaktuGo</strong> para que la procese su gestoria.
+      </p>
+      <p>Encontrara la factura adjunta en este correo como archivo.</p>
+      <p>
+        Este mensaje ha sido generado automaticamente por <strong>FaktuGo</strong> para facilitar
+        el envio y archivo de facturas.
+      </p>
+    `;
+          const text = `Su cliente ${clientDisplayName} ha subido una factura a traves de FaktuGo. La factura se adjunta en este mensaje.`;
+
+          const emailResponse = await fetch("https://api.resend.com/emails", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${resendApiKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              from: fromEmail,
+              to: gestoriaEmail,
+              reply_to: user.email ?? undefined,
+              subject,
+              html,
+              text,
+              attachments: [
+                {
+                  path: fileUrl,
+                  filename: originalName,
+                },
+              ],
+            }),
+          });
+
+          const emailJson = await emailResponse.json().catch(() => ({}));
+          const nowIso = new Date().toISOString();
+          const statusValue = emailResponse.ok ? "sent" : "failed";
+          const messageId = (emailJson as any)?.id ?? null;
+
+          const { error: updateError } = await supabase
+            .from("invoices")
+            .update({
+              sent_to_gestoria_at: nowIso,
+              sent_to_gestoria_status: statusValue,
+              sent_to_gestoria_message_id: messageId,
+            })
+            .eq("id", invoiceId)
+            .eq("user_id", user.id);
+
+          if (updateError) {
+            console.error(
+              "Error al actualizar estado de envio a gestoria en subida:",
+              updateError
+            );
+          }
+        }
+      } catch (e) {
+        console.error(
+          "Error inesperado en envio a gestoria durante subida manual de factura:",
+          e
+        );
+      }
+    }
+
+    results.push({ originalName, id: invoiceId });
   }
 
   return NextResponse.json({ results });

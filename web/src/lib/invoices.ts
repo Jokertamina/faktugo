@@ -8,6 +8,7 @@ export type Invoice = {
   category: string;
   amount: string; // formatted amount, e.g. "45.60 EUR"
   status: "Enviada" | "Pendiente";
+  archival_only?: boolean;
   // Nueva informacion de periodo/carpeta
   period_type?: "month" | "week"; // segun configuracion del usuario
   period_key?: string; // ej. "2025-02" o "2025-S07"
@@ -111,7 +112,7 @@ export async function getInvoices(supabaseOverride?: SupabaseClient): Promise<In
   const { data, error } = await supabase
     .from("invoices")
     .select(
-      "id, date, supplier, category, amount, status, period_type, period_key, folder_path, file_path, file_name_original, file_mime_type, file_size, upload_source, sent_to_gestoria_at, sent_to_gestoria_status, sent_to_gestoria_message_id"
+      "id, date, supplier, category, amount, status, archival_only, period_type, period_key, folder_path, file_path, file_name_original, file_mime_type, file_size, upload_source, sent_to_gestoria_at, sent_to_gestoria_status, sent_to_gestoria_message_id"
     )
     .order("date", { ascending: false });
 

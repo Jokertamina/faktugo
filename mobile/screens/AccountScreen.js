@@ -84,10 +84,20 @@ export default function AccountScreen() {
 
     const trimmedFirst = firstName.trim();
     const trimmedLast = lastName.trim();
+    const trimmedCompany = companyName.trim();
     const fullName = `${trimmedFirst} ${trimmedLast}`.trim();
+    const isBusiness = clientType === "pyme" || clientType === "gestoria";
 
     if (!trimmedFirst || !trimmedLast) {
       Alert.alert("Nombre y apellidos", "Introduce nombre y apellidos para guardar la cuenta.");
+      return;
+    }
+
+    if (isBusiness && !trimmedCompany) {
+      Alert.alert(
+        "Nombre de la empresa",
+        "Para empresas o gestorias, indica el nombre de la empresa para guardar la cuenta."
+      );
       return;
     }
 
@@ -111,7 +121,7 @@ export default function AccountScreen() {
             first_name: trimmedFirst || null,
             last_name: trimmedLast || null,
             type: clientType,
-            company_name: companyName.trim() || null,
+            company_name: trimmedCompany || null,
             country: country.trim() || null,
             gestoria_email: gestoriaEmail.trim() || null,
           })
@@ -132,7 +142,7 @@ export default function AccountScreen() {
           first_name: trimmedFirst || null,
           last_name: trimmedLast || null,
           type: clientType,
-          company_name: companyName.trim() || null,
+          company_name: trimmedCompany || null,
           country: country.trim() || null,
           gestoria_email: gestoriaEmail.trim() || null,
         });
@@ -278,7 +288,9 @@ export default function AccountScreen() {
             </View>
 
             <Text style={{ color: "#E5E7EB", fontSize: 13, marginTop: 8 }}>
-              Nombre comercial (opcional)
+              {clientType === "pyme" || clientType === "gestoria"
+                ? "Nombre de la empresa"
+                : "Nombre comercial (opcional)"}
             </Text>
             <TextInput
               value={companyName}

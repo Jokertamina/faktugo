@@ -431,7 +431,9 @@ export default async function InvoicesPage({
                       <td className="px-4 py-3 align-middle text-right font-semibold text-[#22CC88]">
                         {invoice.amount}
                       </td>
-                      <td className="px-4 py-3 align-middle text-slate-300">{invoice.status}</td>
+                      <td className="px-4 py-3 align-middle text-slate-300">
+                        {invoice.archival_only ? "Solo almacenada" : invoice.status}
+                      </td>
                     </tr>
                   ))}
                 </Fragment>

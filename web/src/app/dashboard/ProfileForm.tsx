@@ -48,10 +48,18 @@ export default function ProfileForm({ userId, email, profile }: ProfileFormProps
       const supabase = getSupabaseBrowserClient();
       const trimmedFirst = firstName.trim();
       const trimmedLast = lastName.trim();
+      const trimmedCompany = companyName.trim();
       const fullName = `${trimmedFirst} ${trimmedLast}`.trim();
+      const isBusiness = type === "pyme" || type === "gestoria";
 
       if (!trimmedFirst || !trimmedLast) {
         setError("Nombre y apellidos son obligatorios.");
+        setSaving(false);
+        return;
+      }
+
+      if (isBusiness && !trimmedCompany) {
+        setError("Para empresas o gestorias, el nombre de la empresa es obligatorio.");
         setSaving(false);
         return;
       }
@@ -65,7 +73,7 @@ export default function ProfileForm({ userId, email, profile }: ProfileFormProps
             first_name: trimmedFirst || null,
             last_name: trimmedLast || null,
             type,
-            company_name: companyName.trim() || null,
+            company_name: trimmedCompany || null,
             country: country.trim() || null,
             gestoria_email: gestoriaEmail.trim() || null,
           },
@@ -131,7 +139,9 @@ export default function ProfileForm({ userId, email, profile }: ProfileFormProps
 
       <div>
         <label className="block text-slate-300" htmlFor="companyName">
-          Nombre comercial (opcional)
+          {type === "pyme" || type === "gestoria"
+            ? "Nombre de la empresa"
+            : "Nombre comercial (opcional)"}
         </label>
         <input
           id="companyName"

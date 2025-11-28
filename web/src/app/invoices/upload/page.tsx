@@ -13,6 +13,18 @@ export default async function UploadInvoicesPage() {
     redirect("/login");
   }
 
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("gestoria_email, auto_send_ingested_to_gestoria")
+    .eq("id", user.id)
+    .maybeSingle<{
+      gestoria_email: string | null;
+      auto_send_ingested_to_gestoria: boolean | null;
+    }>();
+
+  const hasGestoriaEmail = !!(profile?.gestoria_email ?? "").trim();
+  const autoSendIngested = profile?.auto_send_ingested_to_gestoria ?? false;
+
   return (
     <div className="min-h-screen bg-[#050816] text-slate-50">
       <main className="mx-auto max-w-6xl px-6 py-10 font-sans">
@@ -39,7 +51,10 @@ export default async function UploadInvoicesPage() {
           </div>
         </header>
 
-        <UploadInvoicesPanel />
+        <UploadInvoicesPanel
+          hasGestoriaEmail={hasGestoriaEmail}
+          autoSendIngested={autoSendIngested}
+        />
       </main>
     </div>
   );
