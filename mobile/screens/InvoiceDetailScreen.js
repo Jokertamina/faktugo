@@ -12,7 +12,7 @@ export default function InvoiceDetailScreen({ navigation, route, invoices }) {
     return (
       <View style={styles.container}>
         <View style={styles.invoicesHeaderRow}>
-          <TouchableOpacity onPress={() => navigation.navigate("Invoices")}>
+          <TouchableOpacity onPress={() => navigation.goBack()}>
             <Text style={styles.backText}>← Volver</Text>
           </TouchableOpacity>
           <Text style={styles.invoicesHeaderTitle}>Detalle de factura</Text>
@@ -54,10 +54,36 @@ export default function InvoiceDetailScreen({ navigation, route, invoices }) {
     };
   }, [invoice?.file_path]);
 
+  const usoLabel = invoice.archival_only
+    ? "Solo almacenada (ya enviada por otro canal)"
+    : "Factura para gestionar con tu gestoria";
+
+  let envioGestoriaLabel = "No enviada a la gestoria";
+  if (invoice.sent_to_gestoria_status === "sent") {
+    if (invoice.sent_to_gestoria_at) {
+      try {
+        const sentDate = new Date(invoice.sent_to_gestoria_at);
+        const formatted = sentDate.toLocaleString("es-ES", {
+          dateStyle: "short",
+          timeStyle: "short",
+        });
+        envioGestoriaLabel = `Enviada a la gestoria el ${formatted}`;
+      } catch {
+        envioGestoriaLabel = "Enviada a la gestoria";
+      }
+    } else {
+      envioGestoriaLabel = "Enviada a la gestoria";
+    }
+  } else if (invoice.sent_to_gestoria_status === "failed") {
+    envioGestoriaLabel = "Envio a la gestoria fallido";
+  } else if (invoice.sent_to_gestoria_status === "pending") {
+    envioGestoriaLabel = "Envio a la gestoria pendiente";
+  }
+
   return (
     <View style={styles.container}>
       <View style={styles.invoicesHeaderRow}>
-        <TouchableOpacity onPress={() => navigation.navigate("Invoices")}>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
           <Text style={styles.backText}>← Volver</Text>
         </TouchableOpacity>
         <Text style={styles.invoicesHeaderTitle}>Detalle de factura</Text>
@@ -73,6 +99,15 @@ export default function InvoiceDetailScreen({ navigation, route, invoices }) {
             </Text>
           </View>
           <Text style={styles.invoiceAmount}>{invoice.amount}</Text>
+        </View>
+
+        <View style={{ marginTop: 4 }}>
+          <Text style={[styles.invoiceMeta, { marginTop: 0 }]}>
+            Uso en FaktuGo: {usoLabel}
+          </Text>
+          <Text style={[styles.invoiceMeta, { marginTop: 2 }]}>
+            Envio a gestoria: {envioGestoriaLabel}
+          </Text>
         </View>
 
         {invoice.imageUri ? (
@@ -103,8 +138,8 @@ export default function InvoiceDetailScreen({ navigation, route, invoices }) {
         ) : null}
 
         <Text style={styles.detailHint}>
-          En el futuro aqui veras el PDF o la imagen procesada, junto con los datos extraidos por
-          OCR (fecha, importe, proveedor, IVA, etc.).
+          Aqui puedes ver el documento original y el estado de envio a tu gestoria. En el futuro
+          se añadiran notas internas y datos extraidos automaticamente.
         </Text>
       </View>
     </View>

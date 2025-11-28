@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabaseServer";
 import { computePeriodFromDate } from "@/lib/invoices";
+import { Resend } from "resend";
 
 type ResendAttachmentMeta = {
   id: string;
@@ -19,6 +20,14 @@ type ResendEmailReceivedEvent = {
     subject?: string;
     attachments?: ResendAttachmentMeta[];
   };
+};
+
+type ResendReceivedAttachment = {
+  id: string;
+  filename: string;
+  size?: number;
+  content_type?: string;
+  download_url?: string;
 };
 
 function normalizeEmailAddress(raw: string): string {
@@ -86,9 +95,30 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true, matchedAliases: 0 });
     }
 
-    const attachments = Array.isArray(data.attachments) ? data.attachments : [];
-    if (!attachments.length) {
-      return NextResponse.json({ ok: true, matchedAliases: aliases.length, attachments: 0 });
+    const resend = new Resend(resendApiKey);
+
+    const {
+      data: receivedAttachments,
+      error: receivedAttachmentsError,
+    } = await (resend as any).emails.receiving.attachments.list({
+      emailId: data.email_id,
+    });
+
+    if (receivedAttachmentsError) {
+      console.error("Error al listar adjuntos desde Resend:", receivedAttachmentsError);
+      return NextResponse.json(
+        { ok: false, error: "No se pudieron obtener los adjuntos desde Resend" },
+        { status: 500 }
+      );
+    }
+
+    const attachmentsById = new Map<string, ResendReceivedAttachment>();
+    if (Array.isArray(receivedAttachments)) {
+      for (const att of receivedAttachments as any[]) {
+        if (att && att.id) {
+          attachmentsById.set(att.id as string, att as ResendReceivedAttachment);
+        }
+      }
     }
 
     const { dateStr, year, month } = deriveDateString(data.created_at);
@@ -128,10 +158,16 @@ export async function POST(request: Request) {
       const clientDisplayName = combinedName || (profile?.display_name ?? "Tu cliente");
       const shouldAutoSend = autoSendIngested && !!gestoriaEmail && !!fromEmail;
 
-      for (const att of attachments) {
+      for (const att of data.attachments ?? []) {
         try {
-          const mime = att.content_type || "application/octet-stream";
-          const filename = att.filename || "archivo";
+          const full = attachmentsById.get(att.id);
+          if (!full) {
+            results.push({ userId, attachmentId: att.id, error: "Adjunto no encontrado en API de Resend" });
+            continue;
+          }
+
+          const mime = full.content_type || "application/octet-stream";
+          const filename = full.filename || "archivo";
           const isAllowed =
             mime.startsWith("image/") ||
             mime === "application/pdf" ||
@@ -142,34 +178,7 @@ export async function POST(request: Request) {
             continue;
           }
 
-          const detailsRes = await fetch(
-            `https://api.resend.com/emails/${encodeURIComponent(data.email_id)}/attachments/${encodeURIComponent(
-              att.id
-            )}`,
-            {
-              method: "GET",
-              headers: {
-                Authorization: `Bearer ${resendApiKey}`,
-              },
-            }
-          );
-
-          if (!detailsRes.ok) {
-            console.error("No se pudo obtener detalles del adjunto desde Resend", await detailsRes.text());
-            results.push({ userId, attachmentId: att.id, error: "No se pudieron obtener los detalles del adjunto" });
-            continue;
-          }
-
-          const detailsJson = (await detailsRes.json().catch(() => null)) as
-            | {
-                download_url?: string;
-                filename?: string;
-                size?: number;
-                content_type?: string;
-              }
-            | null;
-
-          const downloadUrl = detailsJson?.download_url;
+          const downloadUrl = full.download_url;
           if (!downloadUrl) {
             results.push({ userId, attachmentId: att.id, error: "Adjunto sin URL de descarga" });
             continue;
@@ -184,9 +193,9 @@ export async function POST(request: Request) {
 
           const fileBuffer = await fileRes.arrayBuffer();
 
-          const originalName = detailsJson?.filename || filename;
-          const fileSize = detailsJson?.size ?? att.size ?? fileBuffer.byteLength;
-          const contentType = detailsJson?.content_type || mime;
+          const originalName = full.filename || filename;
+          const fileSize = full.size ?? att.size ?? fileBuffer.byteLength;
+          const contentType = full.content_type || mime;
 
           const ext = (() => {
             const lower = originalName.toLowerCase();

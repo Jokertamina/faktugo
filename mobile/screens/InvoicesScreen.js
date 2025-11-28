@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, SectionList, TouchableOpacity } from "react-native";
+import { View, Text, SectionList, TouchableOpacity, TextInput } from "react-native";
 import { styles } from "../styles";
 import { computePeriodFromDate } from "../domain/period";
 
@@ -79,6 +79,30 @@ function buildSections(invoices, mode) {
 
 export default function InvoicesScreen({ navigation, invoices }) {
   const [viewMode, setViewMode] = useState("month"); // "month" | "week"
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all"); // "all" | "Enviada" | "Pendiente" | "archived"
+
+  const normalizedSearch = search.trim().toLowerCase();
+
+  const filteredInvoices = Array.isArray(invoices)
+    ? invoices.filter((inv) => {
+        if (statusFilter === "Enviada" || statusFilter === "Pendiente") {
+          if (inv.status !== statusFilter) return false;
+        } else if (statusFilter === "archived") {
+          if (!inv.archival_only) return false;
+        }
+
+        if (normalizedSearch) {
+          const supplier = String(inv.supplier ?? "").toLowerCase();
+          const category = String(inv.category ?? "").toLowerCase();
+          if (!supplier.includes(normalizedSearch) && !category.includes(normalizedSearch)) {
+            return false;
+          }
+        }
+
+        return true;
+      })
+    : [];
 
   return (
     <View style={styles.container}>
@@ -88,6 +112,27 @@ export default function InvoicesScreen({ navigation, invoices }) {
         </TouchableOpacity>
         <Text style={styles.invoicesHeaderTitle}>Todas las facturas</Text>
         <View style={{ width: 60 }} />
+      </View>
+
+      <View style={{ marginBottom: 10 }}>
+        <Text style={[styles.invoiceMeta, { marginTop: 0 }]}>Buscar</Text>
+        <TextInput
+          value={search}
+          onChangeText={setSearch}
+          placeholder="Proveedor o categoria"
+          placeholderTextColor="#6B7280"
+          style={{
+            marginTop: 4,
+            borderRadius: 999,
+            borderWidth: 1,
+            borderColor: "#1F2937",
+            paddingHorizontal: 12,
+            paddingVertical: 8,
+            color: "#F9FAFB",
+            fontSize: 12,
+            backgroundColor: "#020617",
+          }}
+        />
       </View>
 
       <View style={styles.viewToggleRow}>
@@ -118,8 +163,38 @@ export default function InvoicesScreen({ navigation, invoices }) {
         })}
       </View>
 
+      <View style={[styles.viewToggleRow, { marginTop: 4 }]}>
+        {[
+          { label: "Todas", value: "all" },
+          { label: "Enviadas", value: "Enviada" },
+          { label: "Pendientes", value: "Pendiente" },
+          { label: "Solo archivadas", value: "archived" },
+        ].map((option) => {
+          const active = statusFilter === option.value;
+          return (
+            <TouchableOpacity
+              key={option.value}
+              onPress={() => setStatusFilter(option.value)}
+              style={[
+                styles.viewToggleButton,
+                active && styles.viewToggleButtonActive,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.viewToggleText,
+                  active && styles.viewToggleTextActive,
+                ]}
+              >
+                {option.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
       <SectionList
-        sections={buildSections(invoices, viewMode)}
+        sections={buildSections(filteredInvoices, viewMode)}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
         renderSectionHeader={({ section }) => (

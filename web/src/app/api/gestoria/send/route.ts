@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabaseServer";
+import { createClient } from "@supabase/supabase-js";
 
 export async function POST(request: Request) {
   try {
@@ -10,23 +11,39 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "invoiceId es obligatorio" }, { status: 400 });
     }
 
-    const supabase = await getSupabaseServerClient();
-
     const authHeader = request.headers.get("authorization") ?? "";
     const bearerPrefix = "Bearer ";
 
-    let user = null as any;
+    let supabase: any;
+    let user: any = null;
     let userError: any = null;
 
     if (authHeader.startsWith(bearerPrefix)) {
       const token = authHeader.slice(bearerPrefix.length).trim();
-      const {
-        data,
-        error,
-      } = await supabase.auth.getUser(token);
+
+      const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+      if (!url || !anonKey) {
+        return NextResponse.json(
+          { error: "Supabase no esta configurado correctamente en el backend." },
+          { status: 500 }
+        );
+      }
+
+      supabase = createClient(url, anonKey, {
+        global: {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      });
+
+      const { data, error } = await supabase.auth.getUser();
       user = data?.user ?? null;
       userError = error;
     } else {
+      supabase = await getSupabaseServerClient();
       const {
         data,
         error,

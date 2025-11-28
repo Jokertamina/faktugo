@@ -27,6 +27,9 @@ export function buildInvoice(raw, mode = DEFAULT_PERIOD_MODE, rootFolder = DEFAU
     file_mime_type: raw.file_mime_type ?? null,
     file_size: raw.file_size ?? null,
     upload_source: raw.upload_source ?? null,
+    archival_only: !!raw.archival_only,
+    sent_to_gestoria_status: raw.sent_to_gestoria_status ?? null,
+    sent_to_gestoria_at: raw.sent_to_gestoria_at ?? null,
   };
 }
 

@@ -45,6 +45,28 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
     }
   }
 
+  const usoLabel = invoice.archival_only
+    ? "Solo almacenada (ya enviada por otro canal)"
+    : "Factura para gestionar con tu gestoria";
+
+  let envioGestoriaLabel = "No enviada a la gestoria";
+  if (invoice.sent_to_gestoria_status === "sent") {
+    if (invoice.sent_to_gestoria_at) {
+      const sentDate = new Date(invoice.sent_to_gestoria_at);
+      const formatted = sentDate.toLocaleString("es-ES", {
+        dateStyle: "short",
+        timeStyle: "short",
+      });
+      envioGestoriaLabel = `Enviada a la gestoria el ${formatted}`;
+    } else {
+      envioGestoriaLabel = "Enviada a la gestoria";
+    }
+  } else if (invoice.sent_to_gestoria_status === "failed") {
+    envioGestoriaLabel = "Envio a la gestoria fallido";
+  } else if (invoice.sent_to_gestoria_status === "pending") {
+    envioGestoriaLabel = "Envio a la gestoria pendiente";
+  }
+
   return (
     <div className="min-h-screen bg-[#050816] text-slate-50">
       <main className="mx-auto max-w-3xl px-6 py-10 font-sans">
@@ -90,6 +112,14 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
             <div>
               <dt className="text-xs uppercase tracking-wide text-slate-400">Identificador</dt>
               <dd className="mt-1 text-slate-100">{invoice.id}</dd>
+            </div>
+            <div>
+              <dt className="text-xs uppercase tracking-wide text-slate-400">Uso en FaktuGo</dt>
+              <dd className="mt-1 text-slate-100">{usoLabel}</dd>
+            </div>
+            <div>
+              <dt className="text-xs uppercase tracking-wide text-slate-400">Envio a gestoria</dt>
+              <dd className="mt-1 text-slate-100">{envioGestoriaLabel}</dd>
             </div>
           </dl>
 

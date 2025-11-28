@@ -183,13 +183,39 @@ export default function HomeScreen({ navigation, invoices, setInvoices }) {
       const fileName = `${id}${ext}`;
       const storagePath = `${baseFolder}/${fileName}`;
 
+      // Local-First: copiar la imagen a una carpeta real bajo documentDirectory,
+      // siguiendo folder_path (ej. /FaktuGo/2025-11) y usar esa ruta como imageUri.
+      let localImageUri = asset.uri;
+      try {
+        const logicalFolder = folder_path || "/FaktuGo";
+        const normalizedFolder = logicalFolder.replace(/^\//, ""); // FaktuGo/2025-11
+        const localFolderUri = `${FileSystem.documentDirectory}${normalizedFolder}`;
+        await FileSystem.makeDirectoryAsync(localFolderUri, { intermediates: true });
+
+        const localFileName = `${id}${ext || ".jpg"}`;
+        const localFileUri = `${localFolderUri}/${localFileName}`;
+
+        await FileSystem.copyAsync({ from: asset.uri, to: localFileUri });
+
+        // Intentamos borrar el fichero temporal original para no duplicar espacio.
+        try {
+          await FileSystem.deleteAsync(asset.uri, { idempotent: true });
+        } catch {
+          // Si falla el borrado no es critico; mantenemos la copia en localFileUri igualmente.
+        }
+
+        localImageUri = localFileUri;
+      } catch (copyError) {
+        console.warn("No se pudo copiar la factura a la carpeta local de FaktuGo:", copyError);
+      }
+
       const localInvoice = buildInvoice({
         id,
         date: isoDate,
         supplier: "Proveedor pendiente",
         category: "Sin clasificar",
         amount: "0.00 EUR",
-        imageUri: asset.uri,
+        imageUri: localImageUri,
         status: "Pendiente",
       });
 
@@ -198,7 +224,7 @@ export default function HomeScreen({ navigation, invoices, setInvoices }) {
       try {
         const uploadUrl = `${SUPABASE_URL}/storage/v1/object/invoices/${storagePath}`;
 
-        const uploadResult = await FileSystem.uploadAsync(uploadUrl, asset.uri, {
+        const uploadResult = await FileSystem.uploadAsync(uploadUrl, localImageUri, {
           httpMethod: "POST",
           headers: {
             Authorization: `Bearer ${accessToken}`,

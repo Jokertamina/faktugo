@@ -148,7 +148,7 @@ export async function getInvoiceById(
   const { data, error } = await supabase
     .from("invoices")
     .select(
-      "id, date, supplier, category, amount, status, period_type, period_key, folder_path, file_path, file_name_original, file_mime_type, file_size, upload_source, sent_to_gestoria_at, sent_to_gestoria_status, sent_to_gestoria_message_id"
+      "id, date, supplier, category, amount, status, archival_only, period_type, period_key, folder_path, file_path, file_name_original, file_mime_type, file_size, upload_source, sent_to_gestoria_at, sent_to_gestoria_status, sent_to_gestoria_message_id"
     )
     .eq("id", id)
     .maybeSingle();

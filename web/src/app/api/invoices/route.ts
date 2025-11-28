@@ -1,19 +1,30 @@
 import { NextResponse } from "next/server";
 import { getInvoices, computePeriodFromDate } from "@/lib/invoices";
-import { getSupabaseClient } from "@/lib/supabaseClient";
+import { getSupabaseServerClient } from "@/lib/supabaseServer";
 
 export async function GET() {
-  const invoices = await getInvoices();
+  const supabase = await getSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+  }
+
+  const invoices = await getInvoices(supabase);
   return NextResponse.json(invoices);
 }
 
 export async function POST(request: Request) {
-  const supabase = getSupabaseClient();
-  if (!supabase) {
-    return NextResponse.json(
-      { error: "Supabase no esta configurado en el backend" },
-      { status: 500 }
-    );
+  const supabase = await getSupabaseServerClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json({ error: "No autenticado" }, { status: 401 });
   }
 
   let body: any;
@@ -37,6 +48,7 @@ export async function POST(request: Request) {
 
   const upsertPayload = {
     id: id ?? crypto.randomUUID(),
+    user_id: user.id,
     date,
     supplier,
     category: category ?? "Otros",
