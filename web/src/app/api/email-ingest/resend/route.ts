@@ -100,7 +100,7 @@ export async function POST(request: Request) {
     const {
       data: receivedAttachments,
       error: receivedAttachmentsError,
-    } = await (resend as any).emails.receiving.attachments.list({
+    } = await (resend as any).attachments.receiving.list({
       emailId: data.email_id,
     });
 
