@@ -64,12 +64,7 @@ export async function POST(request: Request) {
       .from("profiles")
       .select("gestoria_email,first_name,last_name,display_name")
       .eq("id", user.id)
-      .maybeSingle<{
-        gestoria_email: string | null;
-        first_name: string | null;
-        last_name: string | null;
-        display_name: string | null;
-      }>();
+      .maybeSingle();
 
     if (profileError) {
       console.error("Error al obtener perfil para envio a gestoria:", profileError);
