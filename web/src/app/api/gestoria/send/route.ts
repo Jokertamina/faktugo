@@ -11,9 +11,33 @@ export async function POST(request: Request) {
     }
 
     const supabase = await getSupabaseServerClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+
+    const authHeader = request.headers.get("authorization") ?? "";
+    const bearerPrefix = "Bearer ";
+
+    let user = null as any;
+    let userError: any = null;
+
+    if (authHeader.startsWith(bearerPrefix)) {
+      const token = authHeader.slice(bearerPrefix.length).trim();
+      const {
+        data,
+        error,
+      } = await supabase.auth.getUser(token);
+      user = data?.user ?? null;
+      userError = error;
+    } else {
+      const {
+        data,
+        error,
+      } = await supabase.auth.getUser();
+      user = data?.user ?? null;
+      userError = error;
+    }
+
+    if (userError) {
+      console.error("Error al obtener usuario para envio a gestoria:", userError);
+    }
 
     if (!user) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });

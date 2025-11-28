@@ -1,18 +1,63 @@
 import React from "react";
-import { View, Text, FlatList, TouchableOpacity } from "react-native";
+import { View, Text, FlatList, TouchableOpacity, Alert } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import * as FileSystem from "expo-file-system/legacy";
 import { styles } from "../styles";
 import { buildInvoice } from "../domain/invoice";
 import { computePeriodFromDate } from "../domain/period";
 import { getSupabaseClient } from "../supabaseClient";
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from "../config";
+import { SUPABASE_URL, SUPABASE_ANON_KEY, API_BASE_URL } from "../config";
 
 function generateUuid() {
   return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
     const r = (Math.random() * 16) | 0;
     const v = c === "x" ? r : (r & 0x3) | 0x8;
     return v.toString(16);
+  });
+}
+
+function chooseInvoicePurpose(hasGestoriaEmail) {
+  return new Promise((resolve) => {
+    if (!hasGestoriaEmail) {
+      Alert.alert(
+        "No se puede enviar a la gestoria",
+        "Aun no has configurado el email de tu gestoria en FaktuGo. Guardaremos la factura, pero no se enviara automaticamente.",
+        [
+          {
+            text: "Continuar",
+            onPress: () => resolve({ archivalOnly: false, sendToGestoria: false }),
+          },
+          {
+            text: "Cancelar",
+            style: "cancel",
+            onPress: () => resolve(null),
+          },
+        ],
+        { cancelable: false }
+      );
+      return;
+    }
+
+    Alert.alert(
+      "¿Que quieres hacer con esta factura?",
+      "Puedes almacenarla solo en FaktuGo o subirla y enviarla ahora a tu gestoria.",
+      [
+        {
+          text: "Solo almacenarla",
+          onPress: () => resolve({ archivalOnly: true, sendToGestoria: false }),
+        },
+        {
+          text: "Subir y enviar a gestoria",
+          onPress: () => resolve({ archivalOnly: false, sendToGestoria: true }),
+        },
+        {
+          text: "Cancelar",
+          style: "cancel",
+          onPress: () => resolve(null),
+        },
+      ],
+      { cancelable: false }
+    );
   });
 }
 
@@ -45,6 +90,54 @@ export default function HomeScreen({ navigation, invoices, setInvoices }) {
         return;
       }
 
+      const {
+        data: sessionData,
+        error: sessionError,
+      } = await supabase.auth.getSession();
+      if (sessionError) {
+        console.warn(
+          "No se pudo obtener la sesion de Supabase para subir archivo desde movil:",
+          sessionError
+        );
+        return;
+      }
+
+      const accessToken = sessionData?.session?.access_token;
+      if (!accessToken) {
+        console.warn("No se encontro access token de Supabase para subir archivo desde movil.");
+        return;
+      }
+
+      let gestoriaEmail = null;
+      try {
+        const { data: profile, error: profileError } = await supabase
+          .from("profiles")
+          .select("gestoria_email")
+          .eq("id", user.id)
+          .maybeSingle({
+            head: false,
+          });
+
+        if (profileError) {
+          console.warn(
+            "Error al obtener perfil del usuario para comprobar gestoria_email en movil:",
+            profileError
+          );
+        }
+
+        if (profile && typeof profile.gestoria_email === "string") {
+          const trimmed = profile.gestoria_email.trim();
+          if (trimmed.length > 0) {
+            gestoriaEmail = trimmed;
+          }
+        }
+      } catch (profileCheckError) {
+        console.warn(
+          "Error inesperado al comprobar gestoria_email del usuario en movil:",
+          profileCheckError
+        );
+      }
+
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
       if (status !== "granted") {
         console.warn("Permiso de camara no concedido");
@@ -65,6 +158,13 @@ export default function HomeScreen({ navigation, invoices, setInvoices }) {
         console.warn("No se obtuvo ningun recurso de imagen desde la camara.");
         return;
       }
+
+      const choice = await chooseInvoicePurpose(!!gestoriaEmail);
+      if (!choice) {
+        return;
+      }
+
+      const { archivalOnly, sendToGestoria } = choice;
 
       const now = new Date();
       const isoDate = now.toISOString().slice(0, 10); // YYYY-MM-DD
@@ -96,24 +196,6 @@ export default function HomeScreen({ navigation, invoices, setInvoices }) {
       setInvoices((prev) => [localInvoice, ...prev]);
 
       try {
-        const {
-          data: sessionData,
-          error: sessionError,
-        } = await supabase.auth.getSession();
-        if (sessionError) {
-          console.warn(
-            "No se pudo obtener la sesion de Supabase para subir archivo desde movil:",
-            sessionError
-          );
-          return;
-        }
-
-        const accessToken = sessionData?.session?.access_token;
-        if (!accessToken) {
-          console.warn("No se encontro access token de Supabase para subir archivo desde movil.");
-          return;
-        }
-
         const uploadUrl = `${SUPABASE_URL}/storage/v1/object/invoices/${storagePath}`;
 
         const uploadResult = await FileSystem.uploadAsync(uploadUrl, asset.uri, {
@@ -156,10 +238,38 @@ export default function HomeScreen({ navigation, invoices, setInvoices }) {
             file_mime_type: mime,
             file_size: asset.fileSize ?? null,
             upload_source: "mobile_upload",
+            archival_only: archivalOnly,
           });
 
         if (insertError) {
           console.warn("No se pudo registrar la factura en la tabla invoices desde movil:", insertError);
+        }
+      
+        if (sendToGestoria && API_BASE_URL) {
+          try {
+            const response = await fetch(`${API_BASE_URL}/api/gestoria/send`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${accessToken}`,
+              },
+              body: JSON.stringify({ invoiceId: id }),
+            });
+
+            if (!response.ok) {
+              let message = "No se pudo enviar la factura a la gestoria";
+              try {
+                const data = await response.json();
+                if (data?.error) message = data.error;
+              } catch {}
+              console.warn("Envio a gestoria desde movil fallo:", response.status, message);
+            }
+          } catch (sendError) {
+            console.warn(
+              "Error inesperado al intentar enviar la factura a la gestoria desde movil:",
+              sendError
+            );
+          }
         }
       } catch (syncError) {
         console.warn("Error al sincronizar factura escaneada con Supabase desde movil:", syncError);
