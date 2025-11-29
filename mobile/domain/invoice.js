@@ -1,4 +1,4 @@
-import { computePeriodFromDate } from "./period";
+import { withPeriodInfo } from "@faktugo/core";
 
 export const DEFAULT_PERIOD_MODE = "month";
 export const DEFAULT_ROOT_FOLDER = "/FaktuGo";
@@ -7,21 +7,14 @@ export function buildInvoice(raw, mode = DEFAULT_PERIOD_MODE, rootFolder = DEFAU
   if (!raw) return null;
 
   const date = raw.date || new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-  const { period_type, period_key, folder_path } = computePeriodFromDate(date, mode, rootFolder);
-
   const baseStatus = raw.status === "Pendiente" ? "Pendiente" : "Enviada";
-
-  return {
+  const coreBase = {
     id: String(raw.id ?? ""),
     date,
     supplier: raw.supplier ?? "",
     category: raw.category ?? "Otros",
     amount: raw.amount ?? "0.00 EUR",
     status: baseStatus,
-    period_type,
-    period_key,
-    folder_path,
-    imageUri: raw.imageUri,
     file_path: raw.file_path ?? null,
     file_name_original: raw.file_name_original ?? null,
     file_mime_type: raw.file_mime_type ?? null,
@@ -30,6 +23,13 @@ export function buildInvoice(raw, mode = DEFAULT_PERIOD_MODE, rootFolder = DEFAU
     archival_only: !!raw.archival_only,
     sent_to_gestoria_status: raw.sent_to_gestoria_status ?? null,
     sent_to_gestoria_at: raw.sent_to_gestoria_at ?? null,
+  };
+
+  const withPeriod = withPeriodInfo(coreBase, mode, rootFolder);
+
+  return {
+    ...withPeriod,
+    imageUri: raw.imageUri,
   };
 }
 

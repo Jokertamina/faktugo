@@ -1,27 +1,14 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { computePeriodFromDate } from "@faktugo/core";
+import type { CoreInvoice } from "@faktugo/core";
 import { getSupabaseClient } from "./supabaseClient";
 
-export type Invoice = {
-  id: string;
-  date: string; // ISO date string
+export type Invoice = CoreInvoice & {
+  // Campos que en web queremos estrictamente obligatorios y tipados
   supplier: string;
   category: string;
   amount: string; // formatted amount, e.g. "45.60 EUR"
   status: "Enviada" | "Pendiente";
-  archival_only?: boolean;
-  // Nueva informacion de periodo/carpeta
-  period_type?: "month" | "week"; // segun configuracion del usuario
-  period_key?: string; // ej. "2025-02" o "2025-S07"
-  folder_path?: string; // ej. "/FaktuGo/2025-02" o "/FaktuGo/2025-S07"
-  file_path?: string | null;
-  file_name_original?: string | null;
-  file_mime_type?: string | null;
-  file_size?: number | null;
-  upload_source?: string | null;
-  sent_to_gestoria_at?: string | null;
-  sent_to_gestoria_status?: "pending" | "sent" | "failed" | null;
-  sent_to_gestoria_message_id?: string | null;
 };
 
 export { computePeriodFromDate };

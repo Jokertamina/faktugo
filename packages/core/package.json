@@ -8,5 +8,8 @@
   "exports": {
     ".": "./index.js",
     "./period": "./period.js"
+  },
+  "scripts": {
+    "test": "node --test"
   }
 }
