@@ -50,6 +50,46 @@ function deriveDateString(input?: string): { dateStr: string; year: number; mont
   return { dateStr, year, month };
 }
 
+function guessSupplierAndCategory(subject?: string, filename?: string): {
+  supplier: string;
+  category: string;
+} {
+  const baseSupplier = "Proveedor pendiente (correo)";
+  const baseCategory = "Sin clasificar";
+
+  const text = `${subject ?? ""} ${filename ?? ""}`.toLowerCase();
+
+  if (text.includes("repsol")) {
+    return { supplier: "Repsol", category: "Combustible" };
+  }
+
+  if (text.includes("amazon")) {
+    return { supplier: "Amazon", category: "Compras online" };
+  }
+
+  if (text.includes("mercadona")) {
+    return { supplier: "Mercadona", category: "Supermercado" };
+  }
+
+  if (text.includes("uber")) {
+    return { supplier: "Uber", category: "Transporte" };
+  }
+
+  if (text.includes("cabify")) {
+    return { supplier: "Cabify", category: "Transporte" };
+  }
+
+  if (text.includes("endesa")) {
+    return { supplier: "Endesa", category: "Suministros" };
+  }
+
+  if (text.includes("iberdrola")) {
+    return { supplier: "Iberdrola", category: "Suministros" };
+  }
+
+  return { supplier: baseSupplier, category: baseCategory };
+}
+
 export async function POST(request: Request) {
   try {
     const body = (await request.json().catch(() => null)) as ResendEmailReceivedEvent | null;
@@ -230,14 +270,16 @@ export async function POST(request: Request) {
             continue;
           }
 
+          const { supplier, category } = guessSupplierAndCategory(data.subject, originalName);
+
           const insert = await supabase
             .from("invoices")
             .insert({
               id: crypto.randomUUID(),
               user_id: userId,
               date: dateStr,
-              supplier: "Proveedor pendiente (correo)",
-              category: "Sin clasificar",
+              supplier,
+              category,
               amount: "0.00 EUR",
               status: "Pendiente",
               period_type: periodInfo.period_type,

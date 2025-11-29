@@ -138,6 +138,13 @@ export default async function InvoicesPage({
 
   const nextSort = sort === "date_desc" ? "date_asc" : "date_desc";
 
+  const getOriginLabel = (uploadSource?: string | null): string => {
+    if (uploadSource === "email_ingest") return "Email";
+    if (uploadSource === "mobile_upload") return "Móvil";
+    if (uploadSource === "web_upload") return "Web";
+    return "Otro";
+  };
+
   function getIsoWeek(date: Date): number {
     const tmp = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
     const dayNum = tmp.getUTCDay() || 7;
@@ -401,6 +408,7 @@ export default async function InvoicesPage({
                 <th className="px-4 py-3 text-left">Fecha</th>
                 <th className="px-4 py-3 text-left">Proveedor</th>
                 <th className="px-4 py-3 text-left">Categoria</th>
+                <th className="px-4 py-3 text-left">Origen</th>
                 <th className="px-4 py-3 text-right">Importe</th>
                 <th className="px-4 py-3 text-left">Estado</th>
               </tr>
@@ -411,7 +419,7 @@ export default async function InvoicesPage({
                   <tr className="bg-black/20">
                     <td
                       className="px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-300"
-                      colSpan={5}
+                      colSpan={6}
                     >
                       {section.title}
                     </td>
@@ -428,6 +436,26 @@ export default async function InvoicesPage({
                         </Link>
                       </td>
                       <td className="px-4 py-3 align-middle text-slate-300">{invoice.category}</td>
+                      <td className="px-4 py-3 align-middle">
+                        {(() => {
+                          const originLabel = getOriginLabel(invoice.upload_source ?? null);
+                          const baseClasses =
+                            "inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium";
+                          const colorClasses =
+                            originLabel === "Email"
+                              ? "bg-emerald-500/10 text-emerald-300 border border-emerald-500/30"
+                              : originLabel === "Móvil"
+                              ? "bg-sky-500/10 text-sky-300 border border-sky-500/30"
+                              : originLabel === "Web"
+                              ? "bg-indigo-500/10 text-indigo-300 border border-indigo-500/30"
+                              : "bg-slate-800/60 text-slate-200 border border-slate-700";
+                          return (
+                            <span className={`${baseClasses} ${colorClasses}`}>
+                              {originLabel}
+                            </span>
+                          );
+                        })()}
+                      </td>
                       <td className="px-4 py-3 align-middle text-right font-semibold text-[#22CC88]">
                         {invoice.amount}
                       </td>

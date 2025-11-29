@@ -1,0 +1,10 @@
+{
+  "name": "faktugo-monorepo",
+  "private": true,
+  "version": "0.0.1",
+  "workspaces": [
+    "web",
+    "mobile",
+    "packages/core"
+  ]
+}

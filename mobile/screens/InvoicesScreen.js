@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { View, Text, SectionList, TouchableOpacity, TextInput } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { styles } from "../styles";
 import { computePeriodFromDate } from "../domain/period";
 
@@ -17,6 +18,13 @@ const MONTH_NAMES = [
   "Noviembre",
   "Diciembre",
 ];
+
+function getOriginLabel(uploadSource) {
+  if (uploadSource === "email_ingest") return "Correo";
+  if (uploadSource === "mobile_upload") return "Móvil";
+  if (uploadSource === "web_upload") return "Web";
+  return null;
+}
 
 function buildSections(invoices, mode) {
   const groups = {};
@@ -83,6 +91,28 @@ export default function InvoicesScreen({ navigation, invoices }) {
   const [statusFilter, setStatusFilter] = useState("all"); // "all" | "Enviada" | "Pendiente" | "archived"
 
   const normalizedSearch = search.trim().toLowerCase();
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadViewMode() {
+      try {
+        const storedMode = await AsyncStorage.getItem("faktugo_period_mode");
+        if (!isMounted) return;
+        if (storedMode === "week" || storedMode === "month") {
+          setViewMode(storedMode);
+        }
+      } catch (e) {
+        console.warn("No se pudo cargar el modo de vista de facturas:", e);
+      }
+    }
+
+    loadViewMode();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const filteredInvoices = Array.isArray(invoices)
     ? invoices.filter((inv) => {
@@ -163,7 +193,7 @@ export default function InvoicesScreen({ navigation, invoices }) {
         })}
       </View>
 
-      <View style={[styles.viewToggleRow, { marginTop: 4 }]}>
+      <View style={[styles.viewToggleRow, { marginTop: 4, flexWrap: "wrap" }]}>
         {[
           { label: "Todas", value: "all" },
           { label: "Enviadas", value: "Enviada" },
@@ -177,6 +207,7 @@ export default function InvoicesScreen({ navigation, invoices }) {
               onPress={() => setStatusFilter(option.value)}
               style={[
                 styles.viewToggleButton,
+                { flex: 0, paddingHorizontal: 16 },
                 active && styles.viewToggleButtonActive,
               ]}
             >
@@ -209,9 +240,24 @@ export default function InvoicesScreen({ navigation, invoices }) {
             <View style={styles.invoiceCard}>
               <View>
                 <Text style={styles.invoiceSupplier}>{item.supplier}</Text>
-                <Text style={styles.invoiceMeta}>
-                  {item.date} · {item.category}
-                </Text>
+                <View style={{ flexDirection: "row", alignItems: "center", marginTop: 2 }}>
+                  <Text style={styles.invoiceMeta}>
+                    {item.date} · {item.category}
+                  </Text>
+                  {(() => {
+                    const label = getOriginLabel(item.upload_source);
+                    if (!label) return null;
+                    const badgeStyles = [styles.originBadge];
+                    if (label === "Correo") {
+                      badgeStyles.push(styles.originBadgeEmail);
+                    } else if (label === "Móvil") {
+                      badgeStyles.push(styles.originBadgeMobile);
+                    } else if (label === "Web") {
+                      badgeStyles.push(styles.originBadgeWeb);
+                    }
+                    return <Text style={badgeStyles}>{label}</Text>;
+                  })()}
+                </View>
               </View>
               <Text style={styles.invoiceAmount}>{item.amount}</Text>
             </View>

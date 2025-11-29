@@ -2,6 +2,7 @@ import React from "react";
 import { View, Text, FlatList, TouchableOpacity, Alert } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import * as FileSystem from "expo-file-system/legacy";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { styles } from "../styles";
 import { buildInvoice } from "../domain/invoice";
 import { computePeriodFromDate } from "../domain/period";
@@ -14,6 +15,13 @@ function generateUuid() {
     const v = c === "x" ? r : (r & 0x3) | 0x8;
     return v.toString(16);
   });
+}
+
+function getOriginLabel(uploadSource) {
+  if (uploadSource === "email_ingest") return "Correo";
+  if (uploadSource === "mobile_upload") return "Móvil";
+  if (uploadSource === "web_upload") return "Web";
+  return null;
 }
 
 function chooseInvoicePurpose(hasGestoriaEmail) {
@@ -170,7 +178,29 @@ export default function HomeScreen({ navigation, invoices, setInvoices }) {
       const isoDate = now.toISOString().slice(0, 10); // YYYY-MM-DD
       const id = generateUuid();
       const mime = asset.mimeType || "image/jpeg";
-      const { period_type, period_key, folder_path } = computePeriodFromDate(isoDate, "month");
+      let mode = "month";
+      let rootFolder = "/FaktuGo";
+      try {
+        const storedMode = await AsyncStorage.getItem("faktugo_period_mode");
+        const storedRoot = await AsyncStorage.getItem("faktugo_root_folder");
+        if (storedMode === "week" || storedMode === "month") {
+          mode = storedMode;
+        }
+        if (typeof storedRoot === "string" && storedRoot.trim().length > 0) {
+          rootFolder = storedRoot.trim();
+        }
+      } catch (settingsError) {
+        console.warn(
+          "No se pudieron cargar los ajustes locales de periodo/carpeta en Home:",
+          settingsError
+        );
+      }
+
+      const { period_type, period_key, folder_path } = computePeriodFromDate(
+        isoDate,
+        mode,
+        rootFolder
+      );
       const year = now.getFullYear();
       const month = String(now.getMonth() + 1).padStart(2, "0");
       const ext = (() => {
@@ -420,9 +450,24 @@ export default function HomeScreen({ navigation, invoices, setInvoices }) {
             <View style={styles.invoiceCard}>
               <View>
                 <Text style={styles.invoiceSupplier}>{item.supplier}</Text>
-                <Text style={styles.invoiceMeta}>
-                  {item.date} · {item.category}
-                </Text>
+                <View style={{ flexDirection: "row", alignItems: "center", marginTop: 2 }}>
+                  <Text style={styles.invoiceMeta}>
+                    {item.date} · {item.category}
+                  </Text>
+                  {(() => {
+                    const label = getOriginLabel(item.upload_source);
+                    if (!label) return null;
+                    const badgeStyles = [styles.originBadge];
+                    if (label === "Correo") {
+                      badgeStyles.push(styles.originBadgeEmail);
+                    } else if (label === "Móvil") {
+                      badgeStyles.push(styles.originBadgeMobile);
+                    } else if (label === "Web") {
+                      badgeStyles.push(styles.originBadgeWeb);
+                    }
+                    return <Text style={badgeStyles}>{label}</Text>;
+                  })()}
+                </View>
               </View>
               <Text style={styles.invoiceAmount}>{item.amount}</Text>
             </View>

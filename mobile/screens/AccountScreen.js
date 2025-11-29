@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, ScrollView, TextInput, TouchableOpacity, ActivityIndicator, Alert } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { styles } from "../styles";
 import { getSupabaseClient } from "../supabaseClient";
 
@@ -15,15 +16,37 @@ export default function AccountScreen() {
   const [gestoriaEmail, setGestoriaEmail] = useState("");
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [savingProfile, setSavingProfile] = useState(false);
+  const [periodMode, setPeriodMode] = useState("month"); // "month" | "week"
+  const [rootFolder, setRootFolder] = useState("/FaktuGo");
 
   useEffect(() => {
     let isMounted = true;
     const supabase = getSupabaseClient();
 
+    async function loadLocalSettings() {
+      try {
+        const storedMode = await AsyncStorage.getItem("faktugo_period_mode");
+        const storedRoot = await AsyncStorage.getItem("faktugo_root_folder");
+
+        if (!isMounted) return;
+
+        if (storedMode === "month" || storedMode === "week") {
+          setPeriodMode(storedMode);
+        }
+
+        if (typeof storedRoot === "string" && storedRoot.trim().length > 0) {
+          setRootFolder(storedRoot);
+        }
+      } catch (e) {
+        console.warn("No se pudieron cargar los ajustes locales de periodo/carpeta:", e);
+      }
+    }
+
     async function load() {
       if (!supabase) {
         setLoadingUser(false);
         setLoadingProfile(false);
+        await loadLocalSettings();
         return;
       }
 
@@ -62,12 +85,15 @@ export default function AccountScreen() {
           setGestoriaEmail(profile?.gestoria_email ?? "");
           setLoadingProfile(false);
         }
+
+        await loadLocalSettings();
       } catch (e) {
         console.warn("Error inesperado al cargar Cuenta:", e);
         if (isMounted) {
           setLoadingUser(false);
           setLoadingProfile(false);
         }
+        await loadLocalSettings();
       }
     }
 
@@ -152,6 +178,15 @@ export default function AccountScreen() {
           Alert.alert("No se pudo guardar", "Intentalo de nuevo mas tarde.");
           return;
         }
+      }
+      try {
+        const normalizedRoot = (rootFolder || "").trim() || "/FaktuGo";
+        const safeMode = periodMode === "week" ? "week" : "month";
+        await AsyncStorage.setItem("faktugo_period_mode", safeMode);
+        await AsyncStorage.setItem("faktugo_root_folder", normalizedRoot);
+        setRootFolder(normalizedRoot);
+      } catch (settingsError) {
+        console.warn("No se pudieron guardar los ajustes locales de periodo/carpeta:", settingsError);
       }
 
       Alert.alert("Guardado", "Datos de cuenta actualizados.");
@@ -359,6 +394,83 @@ export default function AccountScreen() {
 
             <Text style={{ color: "#9CA3AF", fontSize: 11, marginTop: 4 }}>
               Usaremos estos datos para personalizar el envio de facturas a tu gestoria.
+            </Text>
+
+            <View
+              style={{
+                height: 1,
+                backgroundColor: "#111827",
+                marginVertical: 10,
+              }}
+            />
+
+            <Text style={{ color: "#E5E7EB", fontSize: 13 }}>Agrupacion y carpetas locales</Text>
+            <Text style={{ color: "#9CA3AF", fontSize: 11, marginTop: 2 }}>
+              Controla como se organizan tus facturas en carpetas del dispositivo.
+            </Text>
+
+            <Text style={{ color: "#E5E7EB", fontSize: 13, marginTop: 8 }}>Modo de agrupacion</Text>
+            <View
+              style={{
+                flexDirection: "row",
+                gap: 8,
+                marginTop: 4,
+              }}
+            >
+              {[
+                { value: "month", label: "Mensual" },
+                { value: "week", label: "Semanal" },
+              ].map((opt) => {
+                const active = periodMode === opt.value;
+                return (
+                  <TouchableOpacity
+                    key={opt.value}
+                    onPress={() => setPeriodMode(opt.value)}
+                    style={{
+                      paddingHorizontal: 14,
+                      paddingVertical: 6,
+                      borderRadius: 999,
+                      backgroundColor: active ? "#22CC88" : "#020617",
+                      borderWidth: 1,
+                      borderColor: active ? "#22CC88" : "#1F2937",
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: active ? "#022c22" : "#E5E7EB",
+                        fontSize: 12,
+                        fontWeight: active ? "600" : "400",
+                      }}
+                    >
+                      {opt.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <Text style={{ color: "#E5E7EB", fontSize: 13, marginTop: 8 }}>Carpeta raiz local</Text>
+            <TextInput
+              value={rootFolder}
+              onChangeText={setRootFolder}
+              placeholder="/FaktuGo"
+              placeholderTextColor="#6B7280"
+              autoCapitalize="none"
+              editable={!savingProfile}
+              style={{
+                backgroundColor: "#020617",
+                borderRadius: 999,
+                borderWidth: 1,
+                borderColor: "#1F2937",
+                paddingHorizontal: 14,
+                paddingVertical: 8,
+                color: "#F9FAFB",
+                fontSize: 13,
+                marginTop: 4,
+              }}
+            />
+            <Text style={{ color: "#9CA3AF", fontSize: 11, marginTop: 4 }}>
+              Se usara para crear carpetas locales como "/FaktuGo/2025-11" o similares.
             </Text>
 
             <TouchableOpacity

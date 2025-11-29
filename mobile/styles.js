@@ -218,4 +218,24 @@ export const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
   },
+  originBadge: {
+    borderRadius: 999,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    marginLeft: 4,
+    fontSize: 10,
+    overflow: "hidden",
+  },
+  originBadgeEmail: {
+    backgroundColor: "rgba(16, 185, 129, 0.15)",
+    color: "#6EE7B7",
+  },
+  originBadgeMobile: {
+    backgroundColor: "rgba(56, 189, 248, 0.15)",
+    color: "#7DD3FC",
+  },
+  originBadgeWeb: {
+    backgroundColor: "rgba(129, 140, 248, 0.15)",
+    color: "#A5B4FC",
+  },
 });

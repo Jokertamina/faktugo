@@ -3,6 +3,13 @@ import { View, Text, Image, TouchableOpacity, Linking } from "react-native";
 import { styles } from "../styles";
 import { getSupabaseClient } from "../supabaseClient";
 
+function getOriginLabel(uploadSource) {
+  if (uploadSource === "email_ingest") return "Recibida por correo";
+  if (uploadSource === "mobile_upload") return "Escaneada desde el móvil";
+  if (uploadSource === "web_upload") return "Subida desde la web";
+  return "Origen desconocido";
+}
+
 export default function InvoiceDetailScreen({ navigation, route, invoices }) {
   const { invoiceId } = route.params || {};
   const invoice = invoices.find((item) => item.id === invoiceId);
@@ -80,6 +87,8 @@ export default function InvoiceDetailScreen({ navigation, route, invoices }) {
     envioGestoriaLabel = "Envio a la gestoria pendiente";
   }
 
+  const origenLabel = getOriginLabel(invoice.upload_source);
+
   return (
     <View style={styles.container}>
       <View style={styles.invoicesHeaderRow}>
@@ -102,12 +111,24 @@ export default function InvoiceDetailScreen({ navigation, route, invoices }) {
         </View>
 
         <View style={{ marginTop: 4 }}>
-          <Text style={[styles.invoiceMeta, { marginTop: 0 }]}>
-            Uso en FaktuGo: {usoLabel}
-          </Text>
+          <Text style={[styles.invoiceMeta, { marginTop: 0 }]}>Uso en FaktuGo: {usoLabel}</Text>
           <Text style={[styles.invoiceMeta, { marginTop: 2 }]}>
             Envio a gestoria: {envioGestoriaLabel}
           </Text>
+          <View style={{ flexDirection: "row", alignItems: "center", marginTop: 2 }}>
+            <Text style={styles.invoiceMeta}>Origen:</Text>
+            {(() => {
+              const badgeStyles = [styles.originBadge];
+              if (invoice.upload_source === "email_ingest") {
+                badgeStyles.push(styles.originBadgeEmail);
+              } else if (invoice.upload_source === "mobile_upload") {
+                badgeStyles.push(styles.originBadgeMobile);
+              } else if (invoice.upload_source === "web_upload") {
+                badgeStyles.push(styles.originBadgeWeb);
+              }
+              return <Text style={badgeStyles}>{origenLabel}</Text>;
+            })()}
+          </View>
         </View>
 
         {invoice.imageUri ? (
