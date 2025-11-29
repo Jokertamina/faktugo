@@ -95,7 +95,7 @@ export async function POST(request: Request) {
     }
 
     const listRes = await fetch(
-      `https://api.resend.com/emails/${encodeURIComponent(data.email_id)}/attachments`,
+      `https://api.resend.com/emails/receiving/${encodeURIComponent(data.email_id)}/attachments`,
       {
         method: "GET",
         headers: {
