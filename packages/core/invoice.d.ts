@@ -17,7 +17,7 @@ export type CoreInvoice = {
   file_size?: number | null;
   upload_source?: string | null;
   sent_to_gestoria_at?: string | null;
-  sent_to_gestoria_status?: string | null;
+  sent_to_gestoria_status?: "pending" | "sent" | "failed" | null;
   sent_to_gestoria_message_id?: string | null;
 };
 
