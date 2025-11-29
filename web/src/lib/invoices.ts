@@ -9,6 +9,8 @@ export type Invoice = CoreInvoice & {
   category: string;
   amount: string; // formatted amount, e.g. "45.60 EUR"
   status: "Enviada" | "Pendiente";
+  // Sobreescribimos para asegurar el tipo correcto
+  sent_to_gestoria_status?: "pending" | "sent" | "failed" | null;
 };
 
 export { computePeriodFromDate };
