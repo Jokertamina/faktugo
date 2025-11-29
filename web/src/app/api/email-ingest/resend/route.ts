@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSupabaseServerClient } from "@/lib/supabaseServer";
+import { getSupabaseServiceClient } from "@/lib/supabaseServer";
 import { computePeriodFromDate } from "@/lib/invoices";
 
 type ResendAttachmentMeta = {
@@ -74,7 +74,7 @@ export async function POST(request: Request) {
 
     const fromEmail = process.env.GESTORIA_FROM_EMAIL || null;
 
-    const supabase = await getSupabaseServerClient();
+    const supabase = getSupabaseServiceClient();
 
     const toAddresses = data.to.map(normalizeEmailAddress);
     const uniqueTo = Array.from(new Set(toAddresses));
