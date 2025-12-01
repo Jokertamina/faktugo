@@ -2,6 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSupabaseServerClient } from "@/lib/supabaseServer";
 import UploadInvoicesPanel from "../UploadInvoicesPanel";
+import { getUserSubscription, getMonthlyInvoiceCount } from "@/lib/subscription";
+import UsageAlert from "./UsageAlert";
 
 export default async function UploadInvoicesPage() {
   const supabase = await getSupabaseServerClient();
@@ -24,6 +26,13 @@ export default async function UploadInvoicesPage() {
 
   const hasGestoriaEmail = !!(profile?.gestoria_email ?? "").trim();
   const autoSendIngested = profile?.auto_send_ingested_to_gestoria ?? false;
+
+  // Obtener información de uso
+  const subscription = await getUserSubscription(supabase, user.id);
+  const monthlyCount = await getMonthlyInvoiceCount(supabase, user.id);
+  const limit = subscription.limits.invoicesPerMonth;
+  const remaining = Math.max(0, limit - monthlyCount);
+  const canSendToGestoria = subscription.limits.canSendToGestoria;
 
   return (
     <div className="min-h-screen bg-[#050816] text-slate-50">
@@ -51,9 +60,17 @@ export default async function UploadInvoicesPage() {
           </div>
         </header>
 
+        <UsageAlert
+          plan={subscription.plan}
+          used={monthlyCount}
+          limit={limit}
+          remaining={remaining}
+          canSendToGestoria={canSendToGestoria}
+        />
+
         <UploadInvoicesPanel
-          hasGestoriaEmail={hasGestoriaEmail}
-          autoSendIngested={autoSendIngested}
+          hasGestoriaEmail={hasGestoriaEmail && canSendToGestoria}
+          autoSendIngested={autoSendIngested && canSendToGestoria}
         />
       </main>
     </div>

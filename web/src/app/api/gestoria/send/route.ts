@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabaseServer";
 import { createClient } from "@supabase/supabase-js";
+import { canSendToGestoria } from "@/lib/subscription";
 
 export async function POST(request: Request) {
   try {
@@ -58,6 +59,15 @@ export async function POST(request: Request) {
 
     if (!user) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+    }
+
+    // Verificar que el plan permite envío a gestoría
+    const gestoriaCheck = await canSendToGestoria(supabase, user.id);
+    if (!gestoriaCheck.allowed) {
+      return NextResponse.json(
+        { error: gestoriaCheck.reason, requiresUpgrade: true },
+        { status: 403 }
+      );
     }
 
     const { data: profile, error: profileError } = await supabase

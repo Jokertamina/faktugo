@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseServerClient, getSupabaseClientWithToken } from "@/lib/supabaseServer";
 import { computePeriodFromDate } from "@/lib/invoices";
 import { analyzeInvoiceFile, isValidInvoice, getRejectionReason } from "@/lib/invoiceAI";
+import { canUploadInvoice } from "@/lib/subscription";
 
 export async function POST(request: Request) {
   // Intentar autenticación por cookies (web) o por token Bearer (móvil)
@@ -25,6 +26,32 @@ export async function POST(request: Request) {
 
   const formData = await request.formData();
   const entries = formData.getAll("files");
+
+  // Verificar límite de facturas según el plan del usuario
+  const uploadCheck = await canUploadInvoice(supabase, user.id);
+  if (!uploadCheck.allowed) {
+    return NextResponse.json(
+      { 
+        error: uploadCheck.reason,
+        limitReached: true,
+        remaining: 0
+      }, 
+      { status: 403 }
+    );
+  }
+
+  // Verificar que no intente subir más facturas de las que le quedan
+  const remaining = uploadCheck.remaining ?? 0;
+  if (remaining !== Infinity && entries.length > remaining) {
+    return NextResponse.json(
+      { 
+        error: `Solo puedes subir ${remaining} factura(s) más este mes. Estás intentando subir ${entries.length}.`,
+        limitReached: true,
+        remaining: remaining
+      }, 
+      { status: 403 }
+    );
+  }
 
   const archivalOnlyRaw = formData.get("archivalOnly");
   const archivalOnly =

@@ -19,14 +19,13 @@ const PLANS = [
     name: "Básico",
     price: "9,99",
     period: "mes",
-    description: "Para autónomos y pequeños negocios",
+    description: "Para autónomos con volumen moderado",
     features: [
-      "Hasta 100 facturas/mes",
-      "1 usuario",
-      "1 empresa",
-      "Sincronización multi-dispositivo",
+      "Hasta 50 facturas/mes",
+      "Procesamiento IA incluido",
       "Envío de facturas a gestoría",
       "Ingesta de facturas por email",
+      "Sincronización web y móvil",
       "Soporte por email",
     ],
     highlight: false,
@@ -36,14 +35,10 @@ const PLANS = [
     name: "Pro",
     price: "24,99",
     period: "mes",
-    description: "Para pymes y equipos",
+    description: "Para negocios con alto volumen",
     features: [
       "Todo lo del plan Básico",
-      "Hasta 500 facturas/mes",
-      "5 usuarios",
-      "3 empresas",
-      "Estadísticas avanzadas",
-      "Envíos programados",
+      "Hasta 200 facturas/mes",
       "Soporte prioritario",
     ],
     highlight: true,
@@ -152,7 +147,7 @@ export default function PricingClient() {
                 {currentPlan === "free" ? "Tu plan actual" : "Para empezar"}
               </p>
               <p className="mt-3 text-sm text-slate-300">
-                Prueba FaktuGo sin compromiso. Hasta 10 facturas/mes para que
+                Prueba FaktuGo sin compromiso. Hasta 5 facturas/mes para que
                 veas cómo funciona.
               </p>
             </div>
@@ -162,7 +157,7 @@ export default function PricingClient() {
                 <span className="text-xs font-normal text-slate-400">/mes</span>
               </div>
               <span className="rounded-full bg-white/5 px-3 py-1 text-xs text-slate-300">
-                10 facturas/mes
+                5 facturas/mes
               </span>
             </div>
           </article>

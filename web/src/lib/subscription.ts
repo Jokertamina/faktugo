@@ -4,25 +4,25 @@ export type PlanName = "free" | "basico" | "pro";
 
 export interface PlanLimits {
   invoicesPerMonth: number;
-  users: number;
-  companies: number;
+  canSendToGestoria: boolean;
+  canUseEmailIngestion: boolean;
 }
 
 export const PLAN_LIMITS: Record<PlanName, PlanLimits> = {
   free: {
-    invoicesPerMonth: 10,
-    users: 1,
-    companies: 1,
+    invoicesPerMonth: 5,
+    canSendToGestoria: false,
+    canUseEmailIngestion: false,
   },
   basico: {
-    invoicesPerMonth: 100,
-    users: 1,
-    companies: 1,
+    invoicesPerMonth: 50,
+    canSendToGestoria: true,
+    canUseEmailIngestion: true,
   },
   pro: {
-    invoicesPerMonth: 500,
-    users: 5,
-    companies: 3,
+    invoicesPerMonth: 200,
+    canSendToGestoria: true,
+    canUseEmailIngestion: true,
   },
 };
 
@@ -111,4 +111,42 @@ export async function canUploadInvoice(
     allowed: true,
     remaining: limit === Infinity ? Infinity : limit - monthlyCount,
   };
+}
+
+/**
+ * Verifica si el usuario puede enviar facturas a gestoría
+ */
+export async function canSendToGestoria(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<{ allowed: boolean; reason?: string }> {
+  const subscription = await getUserSubscription(supabase, userId);
+  
+  if (!subscription.limits.canSendToGestoria) {
+    return {
+      allowed: false,
+      reason: "El envío a gestoría no está disponible en el plan gratuito. Actualiza a Básico o Pro para usar esta función.",
+    };
+  }
+
+  return { allowed: true };
+}
+
+/**
+ * Verifica si el usuario puede usar la ingesta de facturas por email
+ */
+export async function canUseEmailIngestion(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<{ allowed: boolean; reason?: string }> {
+  const subscription = await getUserSubscription(supabase, userId);
+  
+  if (!subscription.limits.canUseEmailIngestion) {
+    return {
+      allowed: false,
+      reason: "La ingesta por email no está disponible en el plan gratuito. Actualiza a Básico o Pro para usar esta función.",
+    };
+  }
+
+  return { allowed: true };
 }

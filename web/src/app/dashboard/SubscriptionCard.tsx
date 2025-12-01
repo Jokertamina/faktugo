@@ -3,14 +3,19 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 
-interface SubscriptionData {
+interface UsageData {
   plan: string;
   status: string;
-  subscription: {
-    id: string;
-    currentPeriodEnd: string;
-    cancelAtPeriodEnd: boolean;
-  } | null;
+  usage: {
+    invoicesThisMonth: number;
+    invoicesLimit: number;
+    invoicesRemaining: number;
+    percentUsed: number;
+  };
+  features: {
+    canSendToGestoria: boolean;
+    canUseEmailIngestion: boolean;
+  };
 }
 
 const PLAN_NAMES: Record<string, string> = {
@@ -19,21 +24,15 @@ const PLAN_NAMES: Record<string, string> = {
   pro: "Pro",
 };
 
-const PLAN_LIMITS: Record<string, number> = {
-  free: 10,
-  basico: 100,
-  pro: 500,
-};
-
 export default function SubscriptionCard() {
-  const [data, setData] = useState<SubscriptionData | null>(null);
+  const [data, setData] = useState<UsageData | null>(null);
   const [loading, setLoading] = useState(true);
   const [portalLoading, setPortalLoading] = useState(false);
 
   useEffect(() => {
-    async function fetchSubscription() {
+    async function fetchUsage() {
       try {
-        const res = await fetch("/api/stripe/subscription");
+        const res = await fetch("/api/stripe/usage");
         if (res.ok) {
           const json = await res.json();
           setData(json);
@@ -44,7 +43,7 @@ export default function SubscriptionCard() {
         setLoading(false);
       }
     }
-    fetchSubscription();
+    fetchUsage();
   }, []);
 
   async function handleManageSubscription() {
@@ -75,19 +74,24 @@ export default function SubscriptionCard() {
 
   const plan = data?.plan || "free";
   const planName = PLAN_NAMES[plan] || "Gratuito";
-  const limit = PLAN_LIMITS[plan] || 10;
   const isActive = data?.status === "active" || data?.status === "trialing";
   const isPaid = plan !== "free";
+  
+  const used = data?.usage?.invoicesThisMonth || 0;
+  const limit = data?.usage?.invoicesLimit || 5;
+  const remaining = data?.usage?.invoicesRemaining || 0;
+  const percentUsed = data?.usage?.percentUsed || 0;
+  
+  const isNearLimit = percentUsed >= 80;
+  const isAtLimit = remaining === 0;
 
   return (
     <div className="rounded-2xl border border-slate-800 bg-[#0B1220] p-4">
-      <div className="flex items-center justify-between">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-3">
         <div>
           <p className="text-xs text-slate-400">Tu plan</p>
           <p className="text-lg font-semibold text-slate-50">{planName}</p>
-          <p className="text-xs text-slate-400">
-            {limit === Infinity ? "Facturas ilimitadas" : `${limit} facturas/mes`}
-          </p>
         </div>
         <div
           className={`rounded-full px-3 py-1 text-xs font-medium ${
@@ -102,13 +106,31 @@ export default function SubscriptionCard() {
         </div>
       </div>
 
-      {data?.subscription?.cancelAtPeriodEnd && (
-        <p className="mt-2 text-xs text-amber-400">
-          Se cancelará al final del período
+      {/* Barra de uso */}
+      <div className="mb-2">
+        <div className="flex items-center justify-between text-xs mb-1">
+          <span className="text-slate-400">Facturas este mes</span>
+          <span className={`font-medium ${isAtLimit ? "text-red-400" : isNearLimit ? "text-amber-400" : "text-slate-300"}`}>
+            {used} / {limit}
+          </span>
+        </div>
+        <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
+          <div
+            className={`h-full rounded-full transition-all ${
+              isAtLimit ? "bg-red-500" : isNearLimit ? "bg-amber-500" : "bg-emerald-500"
+            }`}
+            style={{ width: `${Math.min(percentUsed, 100)}%` }}
+          />
+        </div>
+        <p className={`text-xs mt-1 ${isAtLimit ? "text-red-400" : isNearLimit ? "text-amber-400" : "text-slate-500"}`}>
+          {isAtLimit 
+            ? "Has alcanzado el límite" 
+            : `${remaining} facturas restantes`}
         </p>
-      )}
+      </div>
 
-      <div className="mt-4 flex gap-2">
+      {/* Botón */}
+      <div className="mt-3 flex gap-2">
         {isPaid ? (
           <button
             onClick={handleManageSubscription}
@@ -120,9 +142,13 @@ export default function SubscriptionCard() {
         ) : (
           <Link
             href="/pricing"
-            className="flex-1 rounded-full bg-[#2A5FFF] px-3 py-1.5 text-center text-xs font-medium text-white hover:bg-[#224bcc]"
+            className={`flex-1 rounded-full px-3 py-1.5 text-center text-xs font-medium text-white ${
+              isAtLimit || isNearLimit 
+                ? "bg-amber-500 hover:bg-amber-600 animate-pulse" 
+                : "bg-[#2A5FFF] hover:bg-[#224bcc]"
+            }`}
           >
-            Mejorar plan
+            {isAtLimit ? "Necesitas mejorar" : "Mejorar plan"}
           </Link>
         )}
       </div>
