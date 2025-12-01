@@ -1,6 +1,6 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 
-export type PlanName = "free" | "basico" | "empresa" | "gestorias";
+export type PlanName = "free" | "basico" | "pro";
 
 export interface PlanLimits {
   invoicesPerMonth: number;
@@ -19,15 +19,10 @@ export const PLAN_LIMITS: Record<PlanName, PlanLimits> = {
     users: 1,
     companies: 1,
   },
-  empresa: {
+  pro: {
     invoicesPerMonth: 500,
     users: 5,
     companies: 3,
-  },
-  gestorias: {
-    invoicesPerMonth: Infinity,
-    users: Infinity,
-    companies: Infinity,
   },
 };
 

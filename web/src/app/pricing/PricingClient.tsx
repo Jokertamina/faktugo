@@ -16,51 +16,38 @@ interface SubscriptionData {
 const PLANS = [
   {
     id: "basico",
-    name: "Plan Básico",
+    name: "Básico",
     price: "9,99",
     period: "mes",
     description: "Para autónomos y pequeños negocios",
     features: [
-      "Sincronización multi-dispositivo",
       "Hasta 100 facturas/mes",
-      "1 usuario incluido",
-      "Envío automático a gestoría",
+      "1 usuario",
+      "1 empresa",
+      "Sincronización multi-dispositivo",
+      "Envío de facturas a gestoría",
+      "Ingesta de facturas por email",
       "Soporte por email",
     ],
     highlight: false,
   },
   {
-    id: "empresa",
-    name: "Plan Empresa",
+    id: "pro",
+    name: "Pro",
     price: "24,99",
     period: "mes",
-    description: "Para equipos y alto volumen",
+    description: "Para pymes y equipos",
     features: [
       "Todo lo del plan Básico",
       "Hasta 500 facturas/mes",
-      "5 usuarios incluidos",
-      "3 empresas incluidas",
+      "5 usuarios",
+      "3 empresas",
       "Estadísticas avanzadas",
+      "Envíos programados",
       "Soporte prioritario",
     ],
     highlight: true,
     badge: "Recomendado",
-  },
-  {
-    id: "gestorias",
-    name: "Gestorías",
-    price: "49,99",
-    period: "mes",
-    description: "Para despachos profesionales",
-    features: [
-      "Todo lo del plan Empresa",
-      "Facturas ilimitadas",
-      "Usuarios ilimitados",
-      "Panel multi-cliente",
-      "Historial completo",
-      "Soporte premium",
-    ],
-    highlight: false,
   },
 ];
 
@@ -182,7 +169,7 @@ export default function PricingClient() {
         </section>
 
         {/* Planes de pago */}
-        <section className="grid gap-6 md:grid-cols-3">
+        <section className="grid gap-6 md:grid-cols-2 max-w-3xl mx-auto">
           {PLANS.map((plan) => {
             const isCurrentPlan = currentPlan === plan.id;
             const isLoading = loading === plan.id;

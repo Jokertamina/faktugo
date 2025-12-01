@@ -4,11 +4,10 @@ import Stripe from "stripe";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
-// Mapeo de planes a price IDs de Stripe (ACTUALIZAR con los IDs reales de precios recurrentes)
+// Mapeo de planes a price IDs de Stripe
 const PRICE_IDS: Record<string, string> = {
   basico: process.env.STRIPE_PRICE_BASICO || "",
-  empresa: process.env.STRIPE_PRICE_EMPRESA || "",
-  gestorias: process.env.STRIPE_PRICE_GESTORIAS || "",
+  pro: process.env.STRIPE_PRICE_PRO || "",
 };
 
 export async function POST(request: Request) {

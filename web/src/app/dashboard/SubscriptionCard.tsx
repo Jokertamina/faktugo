@@ -16,15 +16,13 @@ interface SubscriptionData {
 const PLAN_NAMES: Record<string, string> = {
   free: "Gratuito",
   basico: "Básico",
-  empresa: "Empresa",
-  gestorias: "Gestorías",
+  pro: "Pro",
 };
 
 const PLAN_LIMITS: Record<string, number> = {
   free: 10,
   basico: 100,
-  empresa: 500,
-  gestorias: Infinity,
+  pro: 500,
 };
 
 export default function SubscriptionCard() {
