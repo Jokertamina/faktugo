@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import { Buffer } from "node:buffer";
+import pdfParse from "pdf-parse";
 
 export type DocumentType = "invoice" | "proforma" | "quote" | "receipt" | "ticket" | "other";
 
@@ -68,6 +69,68 @@ export function getRejectionReason(extracted: ExtractedInvoice | null): string {
 
 const client = new OpenAI();
 
+const ANALYSIS_PROMPT =
+  "Eres un sistema que analiza documentos financieros. Tu tarea es: " +
+  "1) Clasificar el tipo de documento. " +
+  "2) Extraer los datos si es una factura. " +
+  "Devuelve SOLO un JSON con este schema exacto: " +
+  '{ "documentType": "invoice" | "proforma" | "quote" | "receipt" | "ticket" | "other", ' +
+  '"documentTypeConfidence": number (0 a 1), ' +
+  '"supplier": string | null, "category": string | null, "date": string | null, ' +
+  '"totalAmount": number | null, "currency": string | null, "invoiceNumber": string | null }. ' +
+  "Tipos de documento: " +
+  "- invoice: factura definitiva/final (incluye facturas simplificadas). " +
+  "- proforma: factura proforma (documento previo, no definitivo). " +
+  "- quote: presupuesto o cotizacion. " +
+  "- receipt/ticket: ticket de compra o recibo (factura simplificada de comercio). " +
+  "- other: cualquier otro documento (foto, contrato, albaran, etc). " +
+  "La fecha en formato YYYY-MM-DD. Usa punto como separador decimal. " +
+  "documentTypeConfidence debe reflejar tu certeza sobre el tipo (0.0 = nada seguro, 1.0 = totalmente seguro). " +
+  "Si no es una factura/ticket, pon los campos de datos a null pero siempre indica documentType y documentTypeConfidence.";
+
+async function analyzeWithVision(
+  base64: string,
+  contentType: string
+): Promise<string | null> {
+  const dataUrl = `data:${contentType};base64,${base64}`;
+
+  const response = await client.chat.completions.create({
+    model: "gpt-4o",
+    response_format: { type: "json_object" },
+    messages: [
+      {
+        role: "user",
+        content: [
+          { type: "text", text: ANALYSIS_PROMPT },
+          { type: "image_url", image_url: { url: dataUrl } },
+        ],
+      },
+    ],
+    max_tokens: 500,
+  });
+
+  return response.choices[0]?.message?.content ?? null;
+}
+
+async function analyzeWithText(pdfText: string): Promise<string | null> {
+  const response = await client.chat.completions.create({
+    model: "gpt-4o",
+    response_format: { type: "json_object" },
+    messages: [
+      {
+        role: "user",
+        content:
+          ANALYSIS_PROMPT +
+          "\n\nContenido del documento (texto extraido de PDF):\n\n" +
+          pdfText.slice(0, 8000), // Limitar a 8000 chars para no exceder tokens
+      },
+    ],
+    max_tokens: 500,
+  });
+
+  return response.choices[0]?.message?.content ?? null;
+}
+
 export async function analyzeInvoiceFile(
   file: ArrayBuffer | Buffer,
   contentType: string
@@ -79,59 +142,39 @@ export async function analyzeInvoiceFile(
 
   const bytes: Buffer =
     file instanceof Buffer ? file : Buffer.from(new Uint8Array(file));
-  const base64 = bytes.toString("base64");
-  const dataUrl = `data:${contentType};base64,${base64}`;
 
   try {
-    const response = await client.chat.completions.create({
-      model: "gpt-4o",
-      response_format: { type: "json_object" },
-      messages: [
-        {
-          role: "user",
-          content: [
-            {
-              type: "text",
-              text:
-                "Eres un sistema que analiza documentos financieros. Tu tarea es: " +
-                "1) Clasificar el tipo de documento. " +
-                "2) Extraer los datos si es una factura. " +
-                "Devuelve SOLO un JSON con este schema exacto: " +
-                '{ "documentType": "invoice" | "proforma" | "quote" | "receipt" | "ticket" | "other", ' +
-                '"documentTypeConfidence": number (0 a 1), ' +
-                '"supplier": string | null, "category": string | null, "date": string | null, ' +
-                '"totalAmount": number | null, "currency": string | null, "invoiceNumber": string | null }. ' +
-                "Tipos de documento: " +
-                "- invoice: factura definitiva/final (incluye facturas simplificadas). " +
-                "- proforma: factura proforma (documento previo, no definitivo). " +
-                "- quote: presupuesto o cotizacion. " +
-                "- receipt/ticket: ticket de compra o recibo (factura simplificada de comercio). " +
-                "- other: cualquier otro documento (foto, contrato, albaran, etc). " +
-                "La fecha en formato YYYY-MM-DD. Usa punto como separador decimal. " +
-                "documentTypeConfidence debe reflejar tu certeza sobre el tipo (0.0 = nada seguro, 1.0 = totalmente seguro). " +
-                "Si no es una factura/ticket, pon los campos de datos a null pero siempre indica documentType y documentTypeConfidence.",
-            },
-            {
-              type: "image_url",
-              image_url: {
-                url: dataUrl,
-              },
-            },
-          ],
-        },
-      ],
-      max_tokens: 500,
-    });
+    let responseContent: string | null = null;
+    const isPdf =
+      contentType === "application/pdf" ||
+      contentType === "application/x-pdf";
 
-    const content = response.choices[0]?.message?.content;
-    if (!content) {
+    if (isPdf) {
+      // Para PDFs: extraer texto y analizar como texto
+      try {
+        const pdfData = await pdfParse(bytes);
+        if (pdfData.text && pdfData.text.trim().length > 50) {
+          responseContent = await analyzeWithText(pdfData.text);
+        } else {
+          // PDF sin texto (escaneado) - no podemos procesarlo sin OCR
+          console.warn("PDF sin texto extraible; necesita OCR para procesarse.");
+          return null;
+        }
+      } catch (pdfError) {
+        console.error("Error al parsear PDF:", pdfError);
+        return null;
+      }
+    } else {
+      // Para imágenes: usar vision
+      const base64 = bytes.toString("base64");
+      responseContent = await analyzeWithVision(base64, contentType);
+    }
+
+    if (!responseContent) {
       return null;
     }
 
-    const jsonString = typeof content === "string" ? content : (content as any)[0]?.text ?? "";
-    if (!jsonString) {
-      return null;
-    }
+    const jsonString = responseContent;
 
     const parsed = JSON.parse(jsonString) as Partial<ExtractedInvoice>;
 
