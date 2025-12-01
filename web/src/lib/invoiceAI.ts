@@ -84,7 +84,7 @@ export async function analyzeInvoiceFile(
 
   try {
     const response = await client.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-4o",
       response_format: { type: "json_object" },
       messages: [
         {
