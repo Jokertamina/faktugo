@@ -4,6 +4,7 @@ import { getSupabaseServerClient } from "@/lib/supabaseServer";
 import { getInvoices } from "@/lib/invoices";
 import ProfileForm, { type ProfileData } from "./ProfileForm";
 import EmailAliasCard from "./EmailAliasCard";
+import SubscriptionCard from "./SubscriptionCard";
 
 const MONTH_NAMES = [
 	"Enero",
@@ -248,12 +249,7 @@ export default async function DashboardPage() {
             </div>
             <EmailAliasCard />
 
-            <div className="hidden rounded-2xl sm:rounded-3xl border border-slate-800 bg-[#020617] p-4 sm:p-5 sm:block">
-              <h2 className="text-sm font-semibold text-slate-50">Siguiente paso</h2>
-              <p className="mt-2 text-xs text-slate-300">
-                Pronto añadiremos integraciones con Stripe, panel de gestorías y automatizaciones.
-              </p>
-            </div>
+            <SubscriptionCard />
           </div>
         </section>
       </main>
