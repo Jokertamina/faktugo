@@ -150,7 +150,10 @@ export async function POST(request: Request) {
 
     // Extraer datos de la IA
     const supplier = ai.supplier || "Proveedor pendiente";
-    const category = ai.category || "Sin clasificar";
+    // Combinar categoría y concepto para más contexto
+    const baseCategory = ai.category || "Sin clasificar";
+    const concept = ai.concept;
+    const category = concept ? `${baseCategory} - ${concept}` : baseCategory;
 
     let amount = "0.00 EUR";
     if (ai.totalAmount != null && Number.isFinite(ai.totalAmount) && ai.totalAmount > 0) {

@@ -325,7 +325,10 @@ export async function POST(request: Request) {
           );
 
           const supplier = ai.supplier || heuristicSupplier;
-          const category = ai.category || heuristicCategory;
+          // Combinar categoría y concepto para más contexto
+          const baseCategory = ai.category || heuristicCategory;
+          const concept = ai.concept;
+          const category = concept ? `${baseCategory} - ${concept}` : baseCategory;
 
           // Formatear importe si la IA lo detectó
           let amount = "0.00 EUR";

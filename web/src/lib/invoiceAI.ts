@@ -7,6 +7,7 @@ export type DocumentType = "invoice" | "proforma" | "quote" | "receipt" | "ticke
 export type ExtractedInvoice = {
   supplier: string | null;
   category: string | null;
+  concept: string | null; // Descripción breve de qué se factura
   date: string | null; // YYYY-MM-DD
   totalAmount: number | null;
   currency: string | null;
@@ -73,11 +74,11 @@ const ANALYSIS_PROMPT =
   "Eres un sistema que analiza documentos financieros para autonomos y empresas. Tu tarea es: " +
   "1) Clasificar el tipo de documento. " +
   "2) Extraer los datos si es una factura. " +
-  "3) Asignar una categoria de gasto apropiada. " +
+  "3) Identificar el concepto (que se factura) y asignar una categoria de gasto. " +
   "Devuelve SOLO un JSON con este schema exacto: " +
   '{ "documentType": "invoice" | "proforma" | "quote" | "receipt" | "ticket" | "other", ' +
   '"documentTypeConfidence": number (0 a 1), ' +
-  '"supplier": string | null, "category": string | null, "date": string | null, ' +
+  '"supplier": string | null, "concept": string | null, "category": string | null, "date": string | null, ' +
   '"totalAmount": number | null, "currency": string | null, "invoiceNumber": string | null }. ' +
   "Tipos de documento: " +
   "- invoice: factura definitiva/final (incluye facturas simplificadas). " +
@@ -85,7 +86,8 @@ const ANALYSIS_PROMPT =
   "- quote: presupuesto o cotizacion. " +
   "- receipt/ticket: ticket de compra o recibo (factura simplificada de comercio). " +
   "- other: cualquier otro documento (foto, contrato, albaran, etc). " +
-  "CATEGORIAS de gasto (elige la mas apropiada segun el proveedor/servicio): " +
+  "CONCEPT: describe brevemente que servicio o producto se factura (ej: 'Hosting web mensual', 'Gasolina', 'Comida reunión cliente', 'Asesoria fiscal Q4'). " +
+  "CATEGORIAS de gasto (elige segun el concepto): " +
   "Combustible, Transporte, Viajes, Alojamiento, Dietas, Restauracion, Suministros, " +
   "Telefonia/Internet, Software/SaaS, Material oficina, Equipamiento, Formacion, " +
   "Servicios profesionales, Seguros, Alquiler, Marketing, Envios/Mensajeria, " +
@@ -209,6 +211,7 @@ export async function analyzeInvoiceFile(
     return {
       supplier: parsed.supplier ?? null,
       category: parsed.category ?? null,
+      concept: (parsed as { concept?: string }).concept ?? null,
       date: parsed.date ?? null,
       totalAmount: Number.isFinite(totalAmountValue as number)
         ? (totalAmountValue as number)
