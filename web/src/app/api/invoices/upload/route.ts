@@ -199,7 +199,7 @@ export async function POST(request: Request) {
         supplier,
         category,
         amount,
-        status: "Pendiente",
+        status: archivalOnly ? "Archivada" : "Pendiente",
         period_type,
         period_key,
         folder_path,
@@ -279,6 +279,7 @@ export async function POST(request: Request) {
           const { error: updateError } = await supabase
             .from("invoices")
             .update({
+              status: emailResponse.ok ? "Enviada" : "Pendiente",
               sent_to_gestoria_at: nowIso,
               sent_to_gestoria_status: statusValue,
               sent_to_gestoria_message_id: messageId,
