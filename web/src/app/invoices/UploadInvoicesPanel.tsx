@@ -187,7 +187,19 @@ export default function UploadInvoicesPanel({
       });
 
       setFiles(nextFiles);
-      setInfo("Subida completada. Tus facturas se estan organizando en el panel.");
+
+      // Contar éxitos y errores para mostrar mensaje apropiado
+      const successCount = nextFiles.filter((f) => f.status === "success").length;
+      const errorCount = nextFiles.filter((f) => f.status === "error").length;
+
+      if (errorCount === 0 && successCount > 0) {
+        setInfo("Subida completada. Tus facturas se estan organizando en el panel.");
+      } else if (successCount > 0 && errorCount > 0) {
+        setInfo(`${successCount} factura(s) subida(s). ${errorCount} documento(s) rechazado(s) (ver detalles abajo).`);
+      } else if (errorCount > 0 && successCount === 0) {
+        setError(`Ningun documento fue aceptado. ${errorCount} rechazado(s) (ver detalles abajo).`);
+      }
+
       router.refresh();
     } catch (e) {
       const message = e instanceof Error ? e.message : "Error inesperado durante la subida";
@@ -246,7 +258,7 @@ export default function UploadInvoicesPanel({
                   <p className="truncate text-xs text-slate-100">{file.name}</p>
                   <p className="text-[11px] text-slate-500">{formatSize(file.size)}</p>
                 </div>
-                <div className="ml-3 text-[11px]">
+                <div className="ml-3 flex flex-col items-end text-[11px]">
                   {file.status === "pending" && (
                     <span className="text-slate-400">Pendiente</span>
                   )}
@@ -254,10 +266,15 @@ export default function UploadInvoicesPanel({
                     <span className="text-blue-400">Subiendo...</span>
                   )}
                   {file.status === "success" && (
-                    <span className="text-emerald-400">Subida correcta</span>
+                    <span className="text-emerald-400">✓ Factura guardada</span>
                   )}
                   {file.status === "error" && (
-                    <span className="text-red-400">Error</span>
+                    <div className="text-right">
+                      <span className="text-red-400">✗ Rechazado</span>
+                      {file.error && (
+                        <p className="mt-0.5 max-w-[200px] text-[10px] text-red-300/80">{file.error}</p>
+                      )}
+                    </div>
                   )}
                 </div>
               </li>

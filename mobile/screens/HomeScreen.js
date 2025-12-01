@@ -77,13 +77,8 @@ export default function HomeScreen({ navigation, invoices, setInvoices }) {
       return;
     }
 
-    if (!SUPABASE_URL) {
-      console.warn("SUPABASE_URL no esta configurada en la app movil.");
-      return;
-    }
-
-    if (!SUPABASE_ANON_KEY) {
-      console.warn("SUPABASE_ANON_KEY no esta configurada en la app movil.");
+    if (!API_BASE_URL) {
+      Alert.alert("Error de configuración", "No se ha configurado la URL del servidor.");
       return;
     }
 
@@ -236,11 +231,6 @@ export default function HomeScreen({ navigation, invoices, setInvoices }) {
       // =====================================================
       // Enviar al backend para validación con IA y guardado
       // =====================================================
-      if (!API_BASE_URL) {
-        Alert.alert("Error", "No se ha configurado la URL del servidor.");
-        return;
-      }
-
       try {
         // Preparar FormData para enviar al backend
         const formData = new FormData();
@@ -279,11 +269,11 @@ export default function HomeScreen({ navigation, invoices, setInvoices }) {
         if (result.error) {
           // El backend rechazó el documento (no es factura válida)
           Alert.alert(
-            "Documento no válido",
-            result.error,
+            "✗ Documento rechazado",
+            result.error + "\n\nSolo se aceptan facturas válidas.",
             [{ text: "Entendido", style: "cancel" }]
           );
-          // Opcional: borrar el archivo local si no es factura
+          // Borrar el archivo local si no es factura
           try {
             await FileSystem.deleteAsync(localImageUri, { idempotent: true });
           } catch {}
@@ -305,9 +295,9 @@ export default function HomeScreen({ navigation, invoices, setInvoices }) {
 
         // Feedback positivo al usuario
         Alert.alert(
-          "Factura guardada",
-          `Proveedor: ${newInvoice.supplier}\nImporte: ${newInvoice.amount}`,
-          [{ text: "OK" }]
+          "✓ Factura guardada",
+          `La factura ha sido analizada y guardada correctamente.\n\nProveedor: ${newInvoice.supplier}\nCategoría: ${newInvoice.category}\nImporte: ${newInvoice.amount}\nFecha: ${newInvoice.date}`,
+          [{ text: "Ver facturas", onPress: () => navigation.navigate("Invoices") }]
         );
       } catch (uploadError) {
         console.warn("Error al enviar factura al backend:", uploadError);
