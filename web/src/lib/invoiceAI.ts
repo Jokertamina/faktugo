@@ -70,9 +70,10 @@ export function getRejectionReason(extracted: ExtractedInvoice | null): string {
 const client = new OpenAI();
 
 const ANALYSIS_PROMPT =
-  "Eres un sistema que analiza documentos financieros. Tu tarea es: " +
+  "Eres un sistema que analiza documentos financieros para autonomos y empresas. Tu tarea es: " +
   "1) Clasificar el tipo de documento. " +
   "2) Extraer los datos si es una factura. " +
+  "3) Asignar una categoria de gasto apropiada. " +
   "Devuelve SOLO un JSON con este schema exacto: " +
   '{ "documentType": "invoice" | "proforma" | "quote" | "receipt" | "ticket" | "other", ' +
   '"documentTypeConfidence": number (0 a 1), ' +
@@ -84,9 +85,15 @@ const ANALYSIS_PROMPT =
   "- quote: presupuesto o cotizacion. " +
   "- receipt/ticket: ticket de compra o recibo (factura simplificada de comercio). " +
   "- other: cualquier otro documento (foto, contrato, albaran, etc). " +
+  "CATEGORIAS de gasto (elige la mas apropiada segun el proveedor/servicio): " +
+  "Combustible, Transporte, Viajes, Alojamiento, Dietas, Restauracion, Suministros, " +
+  "Telefonia/Internet, Software/SaaS, Material oficina, Equipamiento, Formacion, " +
+  "Servicios profesionales, Seguros, Alquiler, Marketing, Envios/Mensajeria, " +
+  "Mantenimiento, Limpieza, Gestoría/Asesoria, Otro. " +
   "La fecha en formato YYYY-MM-DD. Usa punto como separador decimal. " +
   "documentTypeConfidence debe reflejar tu certeza sobre el tipo (0.0 = nada seguro, 1.0 = totalmente seguro). " +
-  "Si no es una factura/ticket, pon los campos de datos a null pero siempre indica documentType y documentTypeConfidence.";
+  "Si no es una factura/ticket, pon los campos de datos a null pero siempre indica documentType y documentTypeConfidence. " +
+  "Para supplier, usa el nombre comercial o razon social del emisor de la factura.";
 
 async function analyzeWithVision(
   base64: string,
