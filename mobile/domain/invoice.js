@@ -7,14 +7,17 @@ export function buildInvoice(raw, mode = DEFAULT_PERIOD_MODE, rootFolder = DEFAU
   if (!raw) return null;
 
   const date = raw.date || new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-  const baseStatus = raw.status === "Pendiente" ? "Pendiente" : "Enviada";
+  // Soportar todos los estados: Pendiente, Enviada, Archivada
+  const validStatuses = ["Pendiente", "Enviada", "Archivada"];
+  const status = validStatuses.includes(raw.status) ? raw.status : "Pendiente";
   const coreBase = {
     id: String(raw.id ?? ""),
     date,
     supplier: raw.supplier ?? "",
     category: raw.category ?? "Otros",
     amount: raw.amount ?? "0.00 EUR",
-    status: baseStatus,
+    status,
+    invoice_number: raw.invoiceNumber ?? raw.invoice_number ?? null,
     file_path: raw.file_path ?? null,
     file_name_original: raw.file_name_original ?? null,
     file_mime_type: raw.file_mime_type ?? null,

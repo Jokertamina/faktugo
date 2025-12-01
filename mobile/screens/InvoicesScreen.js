@@ -118,14 +118,20 @@ export default function InvoicesScreen({ navigation, invoices }) {
     ? invoices.filter((inv) => {
         if (statusFilter === "Enviada" || statusFilter === "Pendiente") {
           if (inv.status !== statusFilter) return false;
-        } else if (statusFilter === "archived") {
-          if (!inv.archival_only) return false;
+        } else if (statusFilter === "Archivada") {
+          // Filtrar por estado Archivada O por archival_only
+          if (inv.status !== "Archivada" && !inv.archival_only) return false;
         }
 
         if (normalizedSearch) {
           const supplier = String(inv.supplier ?? "").toLowerCase();
           const category = String(inv.category ?? "").toLowerCase();
-          if (!supplier.includes(normalizedSearch) && !category.includes(normalizedSearch)) {
+          const invoiceNum = String(inv.invoice_number ?? "").toLowerCase();
+          if (
+            !supplier.includes(normalizedSearch) &&
+            !category.includes(normalizedSearch) &&
+            !invoiceNum.includes(normalizedSearch)
+          ) {
             return false;
           }
         }
@@ -198,7 +204,7 @@ export default function InvoicesScreen({ navigation, invoices }) {
           { label: "Todas", value: "all" },
           { label: "Enviadas", value: "Enviada" },
           { label: "Pendientes", value: "Pendiente" },
-          { label: "Solo archivadas", value: "archived" },
+          { label: "Archivadas", value: "Archivada" },
         ].map((option) => {
           const active = statusFilter === option.value;
           return (

@@ -57,6 +57,8 @@ export async function POST(request: Request) {
     category?: string;
     amount?: string;
     date?: string;
+    status?: string;
+    invoiceNumber?: string | null;
   }[] = [];
 
   let gestoriaEmail: string | null = null;
@@ -347,6 +349,13 @@ export async function POST(request: Request) {
       }
     }
 
+    // Obtener el estado final de la factura (puede haber cambiado si se envió a gestoría)
+    const { data: finalInvoice } = await supabase
+      .from("invoices")
+      .select("status")
+      .eq("id", invoiceId)
+      .single();
+
     results.push({
       originalName,
       id: invoiceId,
@@ -354,6 +363,8 @@ export async function POST(request: Request) {
       category,
       amount,
       date: invoiceDate,
+      status: finalInvoice?.status || (archivalOnly ? "Archivada" : "Pendiente"),
+      invoiceNumber: invoiceNumber,
     });
   }
 

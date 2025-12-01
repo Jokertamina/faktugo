@@ -288,15 +288,22 @@ export default function HomeScreen({ navigation, invoices, setInvoices }) {
           category: result.category || "Sin clasificar",
           amount: result.amount || "0.00 EUR",
           imageUri: localImageUri,
-          status: "Pendiente",
+          status: result.status || "Pendiente",
+          invoiceNumber: result.invoiceNumber || null,
         });
 
         setInvoices((prev) => [newInvoice, ...prev]);
 
-        // Feedback positivo al usuario
+        // Feedback positivo al usuario con estado
+        const statusText = result.status === "Enviada" 
+          ? "y enviada a tu gestoría" 
+          : result.status === "Archivada" 
+          ? "(solo archivada)" 
+          : "";
+
         Alert.alert(
           "✓ Factura guardada",
-          `La factura ha sido analizada y guardada correctamente.\n\nProveedor: ${newInvoice.supplier}\nCategoría: ${newInvoice.category}\nImporte: ${newInvoice.amount}\nFecha: ${newInvoice.date}`,
+          `La factura ha sido analizada y guardada ${statusText}.\n\nProveedor: ${newInvoice.supplier}\nCategoría: ${newInvoice.category}\nImporte: ${newInvoice.amount}\nFecha: ${newInvoice.date}${result.invoiceNumber ? `\nNº Factura: ${result.invoiceNumber}` : ""}`,
           [{ text: "Ver facturas", onPress: () => navigation.navigate("Invoices") }]
         );
       } catch (uploadError) {
