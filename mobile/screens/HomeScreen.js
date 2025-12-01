@@ -1,13 +1,16 @@
 import React from "react";
-import { View, Text, FlatList, TouchableOpacity, Alert } from "react-native";
+import { View, Text, FlatList, TouchableOpacity, Alert, ScrollView, Dimensions } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import * as FileSystem from "expo-file-system/legacy";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Ionicons } from "@expo/vector-icons";
 import { styles } from "../styles";
 import { buildInvoice } from "../domain/invoice";
 import { computePeriodFromDate } from "../domain/period";
 import { getSupabaseClient } from "../supabaseClient";
 import { API_BASE_URL } from "../config";
+
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 function generateUuid() {
   return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
@@ -340,120 +343,169 @@ export default function HomeScreen({ navigation, invoices, setInvoices }) {
 
   const totalThisMonthLabel = `${totalThisMonth.toFixed(2)} EUR`;
 
+  const recentInvoices = invoices.slice(0, 5);
+
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.logoCircle}>
-          <Text style={styles.logoText}>FG</Text>
-        </View>
-        <View>
-          <Text style={styles.title}>FaktuGo</Text>
-          <Text style={styles.subtitle}>Tus facturas, en piloto automatico</Text>
-        </View>
-      </View>
-
-      <View style={{ flexDirection: "row", gap: 12, marginBottom: 16 }}>
-        <View
-          style={{
-            flex: 1,
-            backgroundColor: "#0B1220",
-            borderRadius: 16,
-            padding: 12,
-          }}
-        >
-          <Text style={{ color: "#9CA3AF", fontSize: 11 }}>Facturas este mes</Text>
-          <Text
-            style={{
-              color: "#22CC88",
-              fontSize: 18,
-              fontWeight: "600",
-              marginTop: 4,
-            }}
-          >
-            {countThisMonth}
-          </Text>
-        </View>
-        <View
-          style={{
-            flex: 1,
-            backgroundColor: "#0B1220",
-            borderRadius: 16,
-            padding: 12,
-          }}
-        >
-          <Text style={{ color: "#9CA3AF", fontSize: 11 }}>Importe este mes</Text>
-          <Text
-            style={{
-              color: "#22CC88",
-              fontSize: 16,
-              fontWeight: "600",
-              marginTop: 4,
-            }}
-          >
-            {totalThisMonthLabel}
-          </Text>
-        </View>
-      </View>
-
-      <Text style={styles.sectionTitle}>Inicio rapido</Text>
-      <Text style={styles.sectionDescription}>
-        Pulsa en "Escanear factura (demo)" para capturar una nueva factura y añadirla a tu
-        historial. Mas adelante este flujo usara la camara real y se sincronizara con la web.
-      </Text>
-
-      <TouchableOpacity style={styles.scanButton} onPress={handleScanDemo}>
-        <Text style={styles.scanButtonText}>Escanear factura (demo)</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={styles.secondaryLink}
-        onPress={() => navigation.navigate("Invoices")}
+    <View style={{ flex: 1, backgroundColor: "#050816" }}>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 100 }}
+        showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.secondaryLinkText}>Ver todas las facturas</Text>
-      </TouchableOpacity>
+        {/* Header */}
+        <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 24 }}>
+          <View style={{
+            width: 48,
+            height: 48,
+            borderRadius: 24,
+            backgroundColor: "#2A5FFF",
+            alignItems: "center",
+            justifyContent: "center",
+            marginRight: 14,
+          }}>
+            <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 16 }}>FG</Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: "#F9FAFB", fontSize: 22, fontWeight: "700" }}>FaktuGo</Text>
+            <Text style={{ color: "#6B7280", fontSize: 13 }}>Tus facturas, en piloto automático</Text>
+          </View>
+        </View>
 
-      <View style={styles.listHeaderRow}>
-        <Text style={styles.listHeaderTitle}>Ultimas facturas</Text>
-        <Text style={styles.listHeaderCount}>{Math.min(invoices.length, 5)}</Text>
-      </View>
-
-      <FlatList
-        data={invoices.slice(0, 5)}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            onPress={() => {
-              navigation.navigate("InvoiceDetail", { invoiceId: item.id });
-            }}
-          >
-            <View style={styles.invoiceCard}>
-              <View>
-                <Text style={styles.invoiceSupplier}>{item.supplier}</Text>
-                <View style={{ flexDirection: "row", alignItems: "center", marginTop: 2 }}>
-                  <Text style={styles.invoiceMeta}>
-                    {item.date} · {item.category}
-                  </Text>
-                  {(() => {
-                    const label = getOriginLabel(item.upload_source);
-                    if (!label) return null;
-                    const badgeStyles = [styles.originBadge];
-                    if (label === "Correo") {
-                      badgeStyles.push(styles.originBadgeEmail);
-                    } else if (label === "Móvil") {
-                      badgeStyles.push(styles.originBadgeMobile);
-                    } else if (label === "Web") {
-                      badgeStyles.push(styles.originBadgeWeb);
-                    }
-                    return <Text style={badgeStyles}>{label}</Text>;
-                  })()}
-                </View>
-              </View>
-              <Text style={styles.invoiceAmount}>{item.amount}</Text>
+        {/* Stats Cards */}
+        <View style={{ flexDirection: "row", gap: 12, marginBottom: 24 }}>
+          <View style={{
+            flex: 1,
+            backgroundColor: "#0F172A",
+            borderRadius: 16,
+            padding: 16,
+            borderWidth: 1,
+            borderColor: "#1E293B",
+          }}>
+            <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}>
+              <Ionicons name="document-text-outline" size={18} color="#6B7280" />
+              <Text style={{ color: "#6B7280", fontSize: 12, marginLeft: 6 }}>Este mes</Text>
             </View>
+            <Text style={{ color: "#22CC88", fontSize: 28, fontWeight: "700" }}>{countThisMonth}</Text>
+            <Text style={{ color: "#4B5563", fontSize: 11, marginTop: 2 }}>facturas</Text>
+          </View>
+          <View style={{
+            flex: 1,
+            backgroundColor: "#0F172A",
+            borderRadius: 16,
+            padding: 16,
+            borderWidth: 1,
+            borderColor: "#1E293B",
+          }}>
+            <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}>
+              <Ionicons name="wallet-outline" size={18} color="#6B7280" />
+              <Text style={{ color: "#6B7280", fontSize: 12, marginLeft: 6 }}>Importe</Text>
+            </View>
+            <Text style={{ color: "#22CC88", fontSize: 24, fontWeight: "700" }}>{totalThisMonthLabel}</Text>
+            <Text style={{ color: "#4B5563", fontSize: 11, marginTop: 2 }}>acumulado</Text>
+          </View>
+        </View>
+
+        {/* Recent Invoices Section */}
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+          <Text style={{ color: "#E5E7EB", fontSize: 16, fontWeight: "600" }}>Últimas facturas</Text>
+          <TouchableOpacity onPress={() => navigation.navigate("Invoices")}>
+            <Text style={{ color: "#3B82F6", fontSize: 13 }}>Ver todas</Text>
           </TouchableOpacity>
+        </View>
+
+        {recentInvoices.length === 0 ? (
+          <View style={{
+            backgroundColor: "#0F172A",
+            borderRadius: 16,
+            padding: 32,
+            alignItems: "center",
+            borderWidth: 1,
+            borderColor: "#1E293B",
+          }}>
+            <Ionicons name="document-outline" size={40} color="#374151" />
+            <Text style={{ color: "#6B7280", fontSize: 14, marginTop: 12, textAlign: "center" }}>
+              Aún no tienes facturas.{"\n"}Escanea tu primera factura.
+            </Text>
+          </View>
+        ) : (
+          recentInvoices.map((item) => (
+            <TouchableOpacity
+              key={item.id}
+              onPress={() => navigation.navigate("InvoiceDetail", { invoiceId: item.id })}
+              activeOpacity={0.7}
+            >
+              <View style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                backgroundColor: "#0F172A",
+                borderRadius: 12,
+                paddingHorizontal: 14,
+                paddingVertical: 12,
+                marginBottom: 8,
+                borderWidth: 1,
+                borderColor: "#1E293B",
+              }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: "#F9FAFB", fontSize: 14, fontWeight: "500" }} numberOfLines={1}>
+                    {item.supplier}
+                  </Text>
+                  <View style={{ flexDirection: "row", alignItems: "center", marginTop: 4 }}>
+                    <Text style={{ color: "#6B7280", fontSize: 11 }}>
+                      {item.date}
+                    </Text>
+                    <Text style={{ color: "#374151", fontSize: 11, marginHorizontal: 6 }}>•</Text>
+                    <Text style={{ color: "#6B7280", fontSize: 11 }} numberOfLines={1}>
+                      {item.category?.split(" - ")[0] || "Sin categoría"}
+                    </Text>
+                    {(() => {
+                      const label = getOriginLabel(item.upload_source);
+                      if (!label) return null;
+                      let bgColor = "rgba(107,114,128,0.2)";
+                      let textColor = "#9CA3AF";
+                      if (label === "Correo") { bgColor = "rgba(16,185,129,0.15)"; textColor = "#6EE7B7"; }
+                      else if (label === "Móvil") { bgColor = "rgba(56,189,248,0.15)"; textColor = "#7DD3FC"; }
+                      else if (label === "Web") { bgColor = "rgba(129,140,248,0.15)"; textColor = "#A5B4FC"; }
+                      return (
+                        <View style={{ backgroundColor: bgColor, borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1, marginLeft: 6 }}>
+                          <Text style={{ color: textColor, fontSize: 9, fontWeight: "500" }}>{label}</Text>
+                        </View>
+                      );
+                    })()}
+                  </View>
+                </View>
+                <Text style={{ color: "#22CC88", fontSize: 14, fontWeight: "600", marginLeft: 12 }}>
+                  {item.amount}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          ))
         )}
-      />
+      </ScrollView>
+
+      {/* FAB - Floating Action Button */}
+      <TouchableOpacity
+        onPress={handleScanDemo}
+        activeOpacity={0.85}
+        style={{
+          position: "absolute",
+          bottom: 24,
+          right: 20,
+          width: 60,
+          height: 60,
+          borderRadius: 30,
+          backgroundColor: "#2A5FFF",
+          alignItems: "center",
+          justifyContent: "center",
+          shadowColor: "#2A5FFF",
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.4,
+          shadowRadius: 8,
+          elevation: 8,
+        }}
+      >
+        <Ionicons name="camera" size={26} color="#fff" />
+      </TouchableOpacity>
     </View>
   );
 }

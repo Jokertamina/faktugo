@@ -5,6 +5,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { View, Text, BackHandler, Platform, ToastAndroid } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { fetchInvoicesFromSupabase } from "./api";
 import { styles } from "./styles";
 import { buildInvoices } from "./domain/invoice";
@@ -47,18 +48,36 @@ const Tab = createBottomTabNavigator();
 function MainTabs({ invoices, setInvoices }) {
   return (
     <Tab.Navigator
-      screenOptions={{
+      screenOptions={({ route }) => ({
         headerShown: false,
         tabBarActiveTintColor: "#22CC88",
-        tabBarInactiveTintColor: "#9CA3AF",
+        tabBarInactiveTintColor: "#6B7280",
         tabBarStyle: {
-          backgroundColor: "#020617",
+          backgroundColor: "#0B1220",
           borderTopColor: "#1F2937",
+          borderTopWidth: 1,
+          height: 60,
+          paddingBottom: 8,
+          paddingTop: 8,
         },
         tabBarLabelStyle: {
           fontSize: 11,
+          fontWeight: "500",
         },
-      }}
+        tabBarIcon: ({ focused, color, size }) => {
+          let iconName;
+          if (route.name === "Home") {
+            iconName = focused ? "home" : "home-outline";
+          } else if (route.name === "Invoices") {
+            iconName = focused ? "document-text" : "document-text-outline";
+          } else if (route.name === "Connections") {
+            iconName = focused ? "link" : "link-outline";
+          } else if (route.name === "Account") {
+            iconName = focused ? "person" : "person-outline";
+          }
+          return <Ionicons name={iconName} size={22} color={color} />;
+        },
+      })}
     >
       <Tab.Screen
         name="Home"

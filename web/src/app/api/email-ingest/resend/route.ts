@@ -346,44 +346,64 @@ export async function POST(request: Request) {
           // =====================================================
           // Verificar duplicados antes de insertar
           // =====================================================
-          let duplicateQuery = supabase
+          // Una factura es duplicada si coinciden VARIOS campos:
+          // - CON número de factura: número + fecha + importe
+          // - SIN número de factura: proveedor (normalizado) + fecha + importe
+          
+          const normalize = (s: string) =>
+            s.toLowerCase().replace(/[^a-z0-9]/g, "").trim();
+
+          const supplierNorm = normalize(supplier);
+          const amountNorm = amount.replace(/\s+/g, "");
+
+          const { data: candidateDuplicates } = await supabase
             .from("invoices")
             .select("id, supplier, date, amount, invoice_number")
             .eq("user_id", userId)
-            .eq("date", invoiceDate)
-            .ilike("supplier", supplier);
+            .eq("date", invoiceDate);
 
-          if (totalAmountNum > 0) {
-            duplicateQuery = duplicateQuery.eq("amount", amount);
+          let isDuplicate = false;
+          let duplicateReason = "";
+
+          for (const inv of candidateDuplicates || []) {
+            const invSupplierNorm = normalize(inv.supplier || "");
+            const invAmountNorm = (inv.amount || "").replace(/\s+/g, "");
+
+            // Criterio 1: Mismo importe (obligatorio)
+            const amountMatch = invAmountNorm === amountNorm;
+            if (!amountMatch) continue;
+
+            // Criterio 2: Si AMBOS tienen número de factura y coinciden
+            if (invoiceNumber && inv.invoice_number && invoiceNumber === inv.invoice_number) {
+              isDuplicate = true;
+              duplicateReason = `Nº ${invoiceNumber} + fecha ${invoiceDate} + importe ${amount}`;
+              break;
+            }
+
+            // Criterio 3: Proveedor similar (primeros 12 chars)
+            const supplierShort = supplierNorm.slice(0, 12);
+            const invSupplierShort = invSupplierNorm.slice(0, 12);
+            const supplierMatch =
+              supplierShort === invSupplierShort ||
+              supplierNorm.includes(invSupplierNorm) ||
+              invSupplierNorm.includes(supplierNorm);
+
+            if (supplierMatch) {
+              isDuplicate = true;
+              duplicateReason = `${inv.supplier} + fecha ${invoiceDate} + importe ${amount}`;
+              break;
+            }
           }
 
-          const { data: possibleDuplicates } = await duplicateQuery;
-
-          if (possibleDuplicates && possibleDuplicates.length > 0) {
-            if (invoiceNumber) {
-              const exactDuplicate = possibleDuplicates.find(
-                (inv) => inv.invoice_number === invoiceNumber
-              );
-              if (exactDuplicate) {
-                console.log(`Factura duplicada detectada en email: Nº ${invoiceNumber} de ${supplier}`);
-                await supabase.storage.from("invoices").remove([storagePath]);
-                results.push({
-                  userId,
-                  attachmentId: att.id,
-                  error: `Factura duplicada (Nº ${invoiceNumber})`,
-                });
-                continue;
-              }
-            } else {
-              console.log(`Posible duplicado en email: ${supplier}, ${invoiceDate}, ${amount}`);
-              await supabase.storage.from("invoices").remove([storagePath]);
-              results.push({
-                userId,
-                attachmentId: att.id,
-                error: `Posible duplicado de ${supplier}`,
-              });
-              continue;
-            }
+          if (isDuplicate) {
+            console.log(`[Email] Factura duplicada: ${duplicateReason}`);
+            await supabase.storage.from("invoices").remove([storagePath]);
+            results.push({
+              userId,
+              attachmentId: att.id,
+              error: `Factura duplicada: ${duplicateReason}`,
+            });
+            continue;
           }
 
           const periodInfo = computePeriodFromDate(invoiceDate, "month");

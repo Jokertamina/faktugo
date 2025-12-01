@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, ScrollView, TextInput, TouchableOpacity, ActivityIndicator, Alert } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Ionicons } from "@expo/vector-icons";
 import { styles } from "../styles";
 import { getSupabaseClient } from "../supabaseClient";
 
@@ -199,87 +200,95 @@ export default function AccountScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={{ marginBottom: 24 }}>
-        <View style={styles.header}>
-          <View style={styles.logoCircle}>
-            <Text style={styles.logoText}>FG</Text>
-          </View>
-          <View>
-            <Text style={styles.title}>Cuenta</Text>
-            <Text style={styles.subtitle}>
-              Datos basicos de tu perfil en FaktuGo y el email de tu gestoria.
-            </Text>
-          </View>
-        </View>
+    <View style={{ flex: 1, backgroundColor: "#050816" }}>
+      {/* Header */}
+      <View style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12 }}>
+        <Text style={{ color: "#F9FAFB", fontSize: 24, fontWeight: "700" }}>Cuenta</Text>
+        <Text style={{ color: "#6B7280", fontSize: 13, marginTop: 2 }}>
+          Tu perfil y configuración
+        </Text>
       </View>
 
-      <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
-        <View style={{ marginBottom: 20 }}>
-          <Text style={styles.sectionTitle}>Tu cuenta</Text>
-          <Text style={styles.sectionDescription}>
-            Esta informacion se sincroniza con el panel web para que tu gestoria sepa quien eres.
-          </Text>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 32 }}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Profile Section */}
+        <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 12, marginTop: 8 }}>
+          <Ionicons name="person-circle-outline" size={18} color="#6B7280" />
+          <Text style={{ color: "#E5E7EB", fontSize: 14, fontWeight: "600", marginLeft: 8 }}>Tu cuenta</Text>
+        </View>
 
-          <View style={{ backgroundColor: "#0B1220", borderRadius: 16, padding: 14, gap: 8 }}>
-            <Text style={{ color: "#E5E7EB", fontSize: 13 }}>Email principal</Text>
-            {loadingUser ? (
-              <Text style={{ color: "#9CA3AF", fontSize: 12 }}>Cargando...</Text>
-            ) : (
-              <Text style={{ color: "#9CA3AF", fontSize: 12 }}>
-                {email ?? "No se pudo detectar el email del usuario."}
-              </Text>
-            )}
+        <View style={{
+          backgroundColor: "#0F172A",
+          borderRadius: 16,
+          padding: 16,
+          borderWidth: 1,
+          borderColor: "#1E293B",
+          marginBottom: 20,
+        }}>
+          <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 12 }}>
+            <Ionicons name="mail-outline" size={16} color="#6B7280" />
+            <Text style={{ color: "#6B7280", fontSize: 12, marginLeft: 8 }}>Email principal</Text>
+          </View>
+          {loadingUser ? (
+            <Text style={{ color: "#9CA3AF", fontSize: 13 }}>Cargando...</Text>
+          ) : (
+            <Text style={{ color: "#F9FAFB", fontSize: 14 }}>
+              {email ?? "No se pudo detectar el email del usuario."}
+            </Text>
+          )}
 
-            <View
-              style={{
-                height: 1,
-                backgroundColor: "#111827",
-                marginVertical: 8,
-              }}
-            />
+          <View
+            style={{
+              height: 1,
+              backgroundColor: "#1E293B",
+              marginVertical: 16,
+            }}
+          />
 
-            <Text style={{ color: "#E5E7EB", fontSize: 13 }}>Nombre</Text>
-            <TextInput
-              value={firstName}
-              onChangeText={setFirstName}
-              placeholder="Nombre"
-              placeholderTextColor="#6B7280"
-              autoCapitalize="words"
-              editable={!loadingProfile && !savingProfile}
-              style={{
-                backgroundColor: "#020617",
-                borderRadius: 999,
-                borderWidth: 1,
-                borderColor: "#1F2937",
-                paddingHorizontal: 14,
-                paddingVertical: 8,
-                color: "#F9FAFB",
-                fontSize: 13,
-                marginTop: 4,
-              }}
-            />
+          <Text style={{ color: "#E5E7EB", fontSize: 13 }}>Nombre</Text>
+          <TextInput
+            value={firstName}
+            onChangeText={setFirstName}
+            placeholder="Nombre"
+            placeholderTextColor="#6B7280"
+            autoCapitalize="words"
+            editable={!loadingProfile && !savingProfile}
+            style={{
+              backgroundColor: "#0F172A",
+              borderRadius: 12,
+              borderWidth: 1,
+              borderColor: "#1E293B",
+              paddingHorizontal: 14,
+              paddingVertical: 12,
+              color: "#F9FAFB",
+              fontSize: 14,
+              marginTop: 8,
+            }}
+          />
 
-            <Text style={{ color: "#E5E7EB", fontSize: 13, marginTop: 8 }}>Apellidos</Text>
-            <TextInput
-              value={lastName}
-              onChangeText={setLastName}
-              placeholder="Apellidos"
-              placeholderTextColor="#6B7280"
-              autoCapitalize="words"
-              editable={!loadingProfile && !savingProfile}
-              style={{
-                backgroundColor: "#020617",
-                borderRadius: 999,
-                borderWidth: 1,
-                borderColor: "#1F2937",
-                paddingHorizontal: 14,
-                paddingVertical: 8,
-                color: "#F9FAFB",
-                fontSize: 13,
-                marginTop: 4,
-              }}
-            />
+          <Text style={{ color: "#E5E7EB", fontSize: 13, marginTop: 16 }}>Apellidos</Text>
+          <TextInput
+            value={lastName}
+            onChangeText={setLastName}
+            placeholder="Apellidos"
+            placeholderTextColor="#6B7280"
+            autoCapitalize="words"
+            editable={!loadingProfile && !savingProfile}
+            style={{
+              backgroundColor: "#0F172A",
+              borderRadius: 12,
+              borderWidth: 1,
+              borderColor: "#1E293B",
+              paddingHorizontal: 14,
+              paddingVertical: 12,
+              color: "#F9FAFB",
+              fontSize: 14,
+              marginTop: 8,
+            }}
+          />
 
             <Text style={{ color: "#E5E7EB", fontSize: 13, marginTop: 8 }}>Tipo de cliente</Text>
             <View
@@ -501,8 +510,7 @@ export default function AccountScreen() {
               </Text>
             </TouchableOpacity>
           </View>
-        </View>
-      </ScrollView>
-    </View>
-  );
-}
+        </ScrollView>
+      </View>
+    );
+  }
