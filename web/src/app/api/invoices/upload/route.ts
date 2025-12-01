@@ -179,14 +179,10 @@ export async function POST(request: Request) {
     // =====================================================
     // PASO 2.5: Verificar si ya existe una factura duplicada
     // =====================================================
-    // Buscar facturas del mismo usuario con misma fecha
-    // Luego comparar proveedor e importe de forma flexible
-    const { data: candidateDuplicates } = await supabase
-      .from("invoices")
-      .select("id, supplier, date, amount, invoice_number")
-      .eq("user_id", user.id)
-      .eq("date", invoiceDate);
-
+    // Una factura es duplicada si coinciden VARIOS campos a la vez:
+    // - CON número de factura: número + fecha + importe (el número puede repetirse entre proveedores)
+    // - SIN número de factura: proveedor (normalizado) + fecha + importe
+    
     // Función para normalizar texto para comparación
     const normalize = (s: string) =>
       s.toLowerCase().replace(/[^a-z0-9]/g, "").trim();
@@ -194,54 +190,57 @@ export async function POST(request: Request) {
     const supplierNorm = normalize(supplier);
     const amountNorm = amount.replace(/\s+/g, ""); // "18.15 EUR" -> "18.15EUR"
 
-    console.log(`[Duplicados] Buscando para: fecha=${invoiceDate}, proveedor="${supplier}" (norm="${supplierNorm}"), importe="${amount}"`);
-    console.log(`[Duplicados] Candidatos encontrados: ${candidateDuplicates?.length || 0}`);
+    // Buscar facturas del mismo usuario con la misma fecha (criterio base)
+    const { data: candidateDuplicates } = await supabase
+      .from("invoices")
+      .select("id, supplier, date, amount, invoice_number")
+      .eq("user_id", user.id)
+      .eq("date", invoiceDate);
 
-    // Buscar duplicados comparando de forma flexible
-    const possibleDuplicates = (candidateDuplicates || []).filter((inv) => {
+    let isDuplicate = false;
+    let duplicateReason = "";
+    let duplicateInfo: { supplier: string; date: string; amount: string; invoice_number: string | null } | null = null;
+
+    for (const inv of candidateDuplicates || []) {
       const invSupplierNorm = normalize(inv.supplier || "");
       const invAmountNorm = (inv.amount || "").replace(/\s+/g, "");
 
-      // Comparar proveedor: al menos uno contiene al otro (para variaciones)
-      const supplierMatch =
-        supplierNorm.includes(invSupplierNorm) ||
-        invSupplierNorm.includes(supplierNorm) ||
-        supplierNorm === invSupplierNorm;
+      // Criterio 1: Mismo importe (obligatorio para considerarlo duplicado)
+      const amountMatch = invAmountNorm === amountNorm;
+      if (!amountMatch) continue;
 
-      // Comparar importe exacto si ambos tienen importe
-      const amountMatch =
-        totalAmountNum === 0 || // Si no hay importe detectado, ignorar
-        invAmountNorm === amountNorm;
-
-      console.log(`[Duplicados] Comparando con: "${inv.supplier}" (norm="${invSupplierNorm}"), "${inv.amount}" -> supplierMatch=${supplierMatch}, amountMatch=${amountMatch}`);
-
-      return supplierMatch && amountMatch;
-    });
-
-    console.log(`[Duplicados] Posibles duplicados: ${possibleDuplicates.length}`);
-
-    if (possibleDuplicates.length > 0) {
-      // Si hay número de factura, verificar si coincide exactamente
-      if (invoiceNumber) {
-        const exactDuplicate = possibleDuplicates.find(
-          (inv) => inv.invoice_number === invoiceNumber
-        );
-        if (exactDuplicate) {
-          results.push({
-            originalName,
-            error: `Esta factura ya existe en el sistema (Nº ${invoiceNumber} de ${supplier}, fecha ${invoiceDate}).`,
-          });
-          continue;
-        }
-        // Tiene número de factura diferente, podría ser otra factura del mismo proveedor/día
-      } else {
-        // Sin número de factura, pero mismo proveedor + fecha + importe = probable duplicado
-        results.push({
-          originalName,
-          error: `Posible duplicado: ya existe una factura de ${supplier} con fecha ${invoiceDate} e importe ${amount}.`,
-        });
-        continue;
+      // Criterio 2: Si AMBOS tienen número de factura y coinciden = duplicado seguro
+      if (invoiceNumber && inv.invoice_number && invoiceNumber === inv.invoice_number) {
+        isDuplicate = true;
+        duplicateReason = `Nº factura ${invoiceNumber} + fecha ${invoiceDate} + importe ${amount}`;
+        duplicateInfo = inv;
+        break;
       }
+
+      // Criterio 3: Proveedor similar (primeros 12 chars normalizados)
+      const supplierShort = supplierNorm.slice(0, 12);
+      const invSupplierShort = invSupplierNorm.slice(0, 12);
+      const supplierMatch =
+        supplierShort === invSupplierShort ||
+        supplierNorm.includes(invSupplierNorm) ||
+        invSupplierNorm.includes(supplierNorm);
+
+      // Si coincide proveedor + fecha + importe = probable duplicado
+      if (supplierMatch) {
+        isDuplicate = true;
+        duplicateReason = `${inv.supplier} + fecha ${invoiceDate} + importe ${amount}`;
+        duplicateInfo = inv;
+        break;
+      }
+    }
+
+    if (isDuplicate && duplicateInfo) {
+      console.log(`[Duplicados] Factura duplicada detectada: ${duplicateReason}`);
+      results.push({
+        originalName,
+        error: `Factura duplicada: ya existe una con ${duplicateReason}.`,
+      });
+      continue;
     }
 
     // =====================================================
