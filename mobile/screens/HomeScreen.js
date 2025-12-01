@@ -7,7 +7,7 @@ import { styles } from "../styles";
 import { buildInvoice } from "../domain/invoice";
 import { computePeriodFromDate } from "../domain/period";
 import { getSupabaseClient } from "../supabaseClient";
-import { SUPABASE_URL, SUPABASE_ANON_KEY, API_BASE_URL } from "../config";
+import { API_BASE_URL } from "../config";
 
 function generateUuid() {
   return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
@@ -196,22 +196,16 @@ export default function HomeScreen({ navigation, invoices, setInvoices }) {
         );
       }
 
-      const { period_type, period_key, folder_path } = computePeriodFromDate(
-        isoDate,
-        mode,
-        rootFolder
-      );
-      const year = now.getFullYear();
-      const month = String(now.getMonth() + 1).padStart(2, "0");
+      // Calcular folder_path para almacenamiento local
+      const { folder_path } = computePeriodFromDate(isoDate, mode, rootFolder);
+
       const ext = (() => {
         const uri = asset.uri;
         const dotIndex = uri.lastIndexOf(".");
         if (dotIndex === -1) return "";
         return uri.slice(dotIndex).toLowerCase();
       })();
-      const baseFolder = `${user.id}/${year}-${month}`;
       const fileName = `${id}${ext}`;
-      const storagePath = `${baseFolder}/${fileName}`;
 
       // Local-First: copiar la imagen a una carpeta real bajo documentDirectory,
       // siguiendo folder_path (ej. /FaktuGo/2025-11) y usar esa ruta como imageUri.
@@ -239,96 +233,85 @@ export default function HomeScreen({ navigation, invoices, setInvoices }) {
         console.warn("No se pudo copiar la factura a la carpeta local de FaktuGo:", copyError);
       }
 
-      const localInvoice = buildInvoice({
-        id,
-        date: isoDate,
-        supplier: "Proveedor pendiente",
-        category: "Sin clasificar",
-        amount: "0.00 EUR",
-        imageUri: localImageUri,
-        status: "Pendiente",
-      });
-
-      setInvoices((prev) => [localInvoice, ...prev]);
-
-      try {
-        const uploadUrl = `${SUPABASE_URL}/storage/v1/object/invoices/${storagePath}`;
-
-        const uploadResult = await FileSystem.uploadAsync(uploadUrl, localImageUri, {
-          httpMethod: "POST",
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            apikey: SUPABASE_ANON_KEY,
-            "Content-Type": mime,
-          },
-        });
-
-        if (uploadResult.status < 200 || uploadResult.status >= 300) {
-          console.warn(
-            "No se pudo subir el archivo a Supabase Storage desde movil:",
-            uploadResult.status,
-            uploadResult.body
-          );
-          return;
-        }
-      } catch (error) {
-        console.warn("Error al subir archivo:", error);
+      // =====================================================
+      // Enviar al backend para validación con IA y guardado
+      // =====================================================
+      if (!API_BASE_URL) {
+        Alert.alert("Error", "No se ha configurado la URL del servidor.");
+        return;
       }
 
       try {
-        const { error: insertError } = await supabase
-          .from("invoices")
-          .insert({
-            id,
-            user_id: user.id,
-            date: isoDate,
-            supplier: "Proveedor pendiente",
-            category: "Sin clasificar",
-            amount: "0.00 EUR",
-            status: "Pendiente",
-            period_type,
-            period_key,
-            folder_path,
-            file_path: storagePath,
-            file_name_original: fileName,
-            file_mime_type: mime,
-            file_size: asset.fileSize ?? null,
-            upload_source: "mobile_upload",
-            archival_only: archivalOnly,
-          });
+        // Preparar FormData para enviar al backend
+        const formData = new FormData();
+        formData.append("files", {
+          uri: localImageUri,
+          type: mime,
+          name: fileName,
+        });
+        formData.append("archivalOnly", archivalOnly ? "true" : "false");
+        formData.append("sendToGestoria", sendToGestoria ? "true" : "false");
+        formData.append("uploadSource", "mobile_upload");
 
-        if (insertError) {
-          console.warn("No se pudo registrar la factura en la tabla invoices desde movil:", insertError);
+        const uploadResponse = await fetch(`${API_BASE_URL}/api/invoices/upload`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            // No poner Content-Type, fetch lo detecta automáticamente para FormData
+          },
+          body: formData,
+        });
+
+        const uploadData = await uploadResponse.json();
+
+        if (!uploadResponse.ok) {
+          const errorMsg = uploadData?.error || "Error al procesar la factura";
+          Alert.alert("Error", errorMsg);
+          return;
         }
-      
-        if (sendToGestoria && API_BASE_URL) {
+
+        const result = uploadData?.results?.[0];
+        if (!result) {
+          Alert.alert("Error", "No se recibió respuesta del servidor");
+          return;
+        }
+
+        if (result.error) {
+          // El backend rechazó el documento (no es factura válida)
+          Alert.alert(
+            "Documento no válido",
+            result.error,
+            [{ text: "Entendido", style: "cancel" }]
+          );
+          // Opcional: borrar el archivo local si no es factura
           try {
-            const response = await fetch(`${API_BASE_URL}/api/gestoria/send`, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${accessToken}`,
-              },
-              body: JSON.stringify({ invoiceId: id }),
-            });
-
-            if (!response.ok) {
-              let message = "No se pudo enviar la factura a la gestoria";
-              try {
-                const data = await response.json();
-                if (data?.error) message = data.error;
-              } catch {}
-              console.warn("Envio a gestoria desde movil fallo:", response.status, message);
-            }
-          } catch (sendError) {
-            console.warn(
-              "Error inesperado al intentar enviar la factura a la gestoria desde movil:",
-              sendError
-            );
-          }
+            await FileSystem.deleteAsync(localImageUri, { idempotent: true });
+          } catch {}
+          return;
         }
-      } catch (syncError) {
-        console.warn("Error al sincronizar factura escaneada con Supabase desde movil:", syncError);
+
+        // Éxito: el backend creó la factura con datos de IA
+        const newInvoice = buildInvoice({
+          id: result.id,
+          date: result.date || isoDate,
+          supplier: result.supplier || "Proveedor pendiente",
+          category: result.category || "Sin clasificar",
+          amount: result.amount || "0.00 EUR",
+          imageUri: localImageUri,
+          status: "Pendiente",
+        });
+
+        setInvoices((prev) => [newInvoice, ...prev]);
+
+        // Feedback positivo al usuario
+        Alert.alert(
+          "Factura guardada",
+          `Proveedor: ${newInvoice.supplier}\nImporte: ${newInvoice.amount}`,
+          [{ text: "OK" }]
+        );
+      } catch (uploadError) {
+        console.warn("Error al enviar factura al backend:", uploadError);
+        Alert.alert("Error", "No se pudo conectar con el servidor. Inténtalo de nuevo.");
       }
     } catch (error) {
       console.warn("Error en handleScanDemo:", error);

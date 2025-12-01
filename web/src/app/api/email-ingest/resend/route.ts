@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServiceClient } from "@/lib/supabaseServer";
 import { computePeriodFromDate } from "@/lib/invoices";
+import { analyzeInvoiceFile, isValidInvoice, getRejectionReason } from "@/lib/invoiceAI";
 
 type ResendAttachmentMeta = {
   id: string;
@@ -50,41 +51,60 @@ function deriveDateString(input?: string): { dateStr: string; year: number; mont
   return { dateStr, year, month };
 }
 
-function guessSupplierAndCategory(subject?: string, filename?: string): {
+function guessSupplierAndCategory(subject?: string, filename?: string, fromRaw?: string): {
   supplier: string;
   category: string;
 } {
   const baseSupplier = "Proveedor pendiente (correo)";
   const baseCategory = "Sin clasificar";
 
-  const text = `${subject ?? ""} ${filename ?? ""}`.toLowerCase();
+  const fromAddress = fromRaw ? normalizeEmailAddress(fromRaw) : "";
+  const fromDomain = fromAddress.includes("@") ? fromAddress.split("@")[1] ?? "" : "";
 
-  if (text.includes("repsol")) {
-    return { supplier: "Repsol", category: "Combustible" };
+  const text = `${subject ?? ""} ${filename ?? ""} ${fromAddress} ${fromDomain}`.toLowerCase();
+
+  if (text.includes("repsol") || text.includes("cepsa") || text.includes("bp ") || text.includes(" galp") || text.includes(" shell")) {
+    return { supplier: "Gasolinera", category: "Combustible" };
   }
 
-  if (text.includes("amazon")) {
-    return { supplier: "Amazon", category: "Compras online" };
-  }
-
-  if (text.includes("mercadona")) {
-    return { supplier: "Mercadona", category: "Supermercado" };
+  if (text.includes("uber eats") || text.includes("ubereats") || text.includes("just eat") || text.includes("glovo") || text.includes("deliveroo")) {
+    return { supplier: "Comida a domicilio", category: "Dietas" };
   }
 
   if (text.includes("uber")) {
     return { supplier: "Uber", category: "Transporte" };
   }
 
-  if (text.includes("cabify")) {
-    return { supplier: "Cabify", category: "Transporte" };
+  if (text.includes("cabify") || text.includes("bolt")) {
+    return { supplier: "VTC", category: "Transporte" };
   }
 
-  if (text.includes("endesa")) {
-    return { supplier: "Endesa", category: "Suministros" };
+  if (text.includes("mercadona") || text.includes("carrefour") || text.includes("lidl") || text.includes("dia ") || text.includes("eroski")) {
+    return { supplier: "Supermercado", category: "Supermercado" };
   }
 
-  if (text.includes("iberdrola")) {
-    return { supplier: "Iberdrola", category: "Suministros" };
+  if (text.includes("endesa") || text.includes("iberdrola") || text.includes("naturgy") || text.includes("holaluz")) {
+    return { supplier: "Suministros", category: "Suministros" };
+  }
+
+  if (text.includes("movistar") || text.includes("vodafone") || text.includes("orange") || text.includes("yoigo") || text.includes("o2") || text.includes("masmovil") || text.includes("pepephone")) {
+    return { supplier: "Teleco", category: "Telefonia/Internet" };
+  }
+
+  if (text.includes("renfe") || text.includes("alsa") || text.includes("iryo") || text.includes("vueling") || text.includes("iberia") || text.includes("ryanair") || text.includes("air europa")) {
+    return { supplier: "Transporte", category: "Viajes" };
+  }
+
+  if (text.includes("booking") || text.includes("airbnb") || text.includes("hotel")) {
+    return { supplier: "Alojamiento", category: "Viajes" };
+  }
+
+  if (text.includes("google workspace") || text.includes("g suite") || text.includes("github") || text.includes("notion") || text.includes("slack") || text.includes("microsoft 365") || text.includes("office 365")) {
+    return { supplier: "Software", category: "Suscripciones" };
+  }
+
+  if (text.includes("amzn") || text.includes("amazon")) {
+    return { supplier: "Amazon", category: "Compras online" };
   }
 
   return { supplier: baseSupplier, category: baseCategory };
@@ -166,7 +186,6 @@ export async function POST(request: Request) {
     }
 
     const { dateStr, year, month } = deriveDateString(data.created_at);
-    const periodInfo = computePeriodFromDate(dateStr, "month");
 
     const results: { userId: string; attachmentId: string; invoiceId?: string; error?: string }[] = [];
 
@@ -241,6 +260,31 @@ export async function POST(request: Request) {
           const fileSize = full.size ?? att.size ?? fileBuffer.byteLength;
           const contentType = full.content_type || mime;
 
+          // =====================================================
+          // PASO 1: Analizar el documento con IA ANTES de guardar
+          // =====================================================
+          const ai = await analyzeInvoiceFile(fileBuffer, contentType);
+
+          // Verificar si es una factura válida
+          if (!ai || !isValidInvoice(ai)) {
+            const reason = getRejectionReason(ai);
+            console.log(
+              `Documento rechazado para usuario ${userId}: ${reason}`,
+              ai ? { documentType: ai.documentType, confidence: ai.documentTypeConfidence } : null
+            );
+            results.push({
+              userId,
+              attachmentId: att.id,
+              error: `Documento no es una factura válida: ${reason}`,
+            });
+            continue; // NO subimos a Storage, NO creamos fila en invoices
+          }
+
+          // A partir de aquí, ai está garantizado no-null por el check anterior
+
+          // =====================================================
+          // PASO 2: Es factura válida → subir a Storage
+          // =====================================================
           const ext = (() => {
             const lower = originalName.toLowerCase();
             const dotIndex = lower.lastIndexOf(".");
@@ -270,17 +314,40 @@ export async function POST(request: Request) {
             continue;
           }
 
-          const { supplier, category } = guessSupplierAndCategory(data.subject, originalName);
+          // =====================================================
+          // PASO 3: Crear factura con datos extraídos por IA
+          // =====================================================
+          // Usamos datos de IA si están disponibles, sino fallback a heurísticas
+          const { supplier: heuristicSupplier, category: heuristicCategory } = guessSupplierAndCategory(
+            data.subject,
+            originalName,
+            data.from
+          );
+
+          const supplier = ai.supplier || heuristicSupplier;
+          const category = ai.category || heuristicCategory;
+
+          // Formatear importe si la IA lo detectó
+          let amount = "0.00 EUR";
+          if (ai.totalAmount != null && Number.isFinite(ai.totalAmount) && ai.totalAmount > 0) {
+            const currency = (ai.currency ?? "EUR").toUpperCase();
+            amount = `${ai.totalAmount.toFixed(2)} ${currency}`;
+          }
+
+          // Usar fecha de la IA si está disponible, sino fecha del email
+          const invoiceDate = ai.date || dateStr;
+
+          const periodInfo = computePeriodFromDate(invoiceDate, "month");
 
           const insert = await supabase
             .from("invoices")
             .insert({
               id: crypto.randomUUID(),
               user_id: userId,
-              date: dateStr,
+              date: invoiceDate,
               supplier,
               category,
-              amount: "0.00 EUR",
+              amount,
               status: "Pendiente",
               period_type: periodInfo.period_type,
               period_key: periodInfo.period_key,

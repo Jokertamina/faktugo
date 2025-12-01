@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabaseServer";
 import { computePeriodFromDate } from "@/lib/invoices";
+import { analyzeInvoiceFile, isValidInvoice, getRejectionReason } from "@/lib/invoiceAI";
 
 export async function POST(request: Request) {
   const supabase = await getSupabaseServerClient();
@@ -42,7 +43,21 @@ export async function POST(request: Request) {
     );
   }
 
-  const results: { originalName: string; id?: string; error?: string }[] = [];
+  // Detectar si viene de móvil para marcar upload_source correctamente
+  const uploadSourceRaw = formData.get("uploadSource");
+  const uploadSource =
+    uploadSourceRaw === "mobile_upload" ? "mobile_upload" : "web_upload";
+
+  const results: {
+    originalName: string;
+    id?: string;
+    error?: string;
+    // Datos extraídos por IA (para que el móvil los muestre)
+    supplier?: string;
+    category?: string;
+    amount?: string;
+    date?: string;
+  }[] = [];
 
   let gestoriaEmail: string | null = null;
   let clientDisplayName: string = "Tu cliente";
@@ -101,16 +116,51 @@ export async function POST(request: Request) {
       continue;
     }
 
+    // =====================================================
+    // PASO 1: Analizar el documento con IA ANTES de guardar
+    // =====================================================
+    const fileBuffer = await file.arrayBuffer();
+    const ai = await analyzeInvoiceFile(fileBuffer, mime);
+
+    // Verificar si es una factura válida
+    if (!ai || !isValidInvoice(ai)) {
+      const reason = getRejectionReason(ai);
+      results.push({
+        originalName,
+        error: reason,
+      });
+      continue; // NO subimos a Storage, NO creamos fila en invoices
+    }
+
+    // =====================================================
+    // PASO 2: Es factura válida → preparar datos
+    // =====================================================
     const now = new Date();
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, "0");
-    const dateStr = `${year}-${month}-${String(now.getDate()).padStart(2, "0")}`;
+    const todayStr = `${year}-${month}-${String(now.getDate()).padStart(2, "0")}`;
+
+    // Usar fecha de la factura si la IA la detectó, sino fecha de hoy
+    const invoiceDate = ai.date || todayStr;
 
     const { period_type, period_key, folder_path } = computePeriodFromDate(
-      dateStr,
+      invoiceDate,
       "month"
     );
 
+    // Extraer datos de la IA
+    const supplier = ai.supplier || "Proveedor pendiente";
+    const category = ai.category || "Sin clasificar";
+
+    let amount = "0.00 EUR";
+    if (ai.totalAmount != null && Number.isFinite(ai.totalAmount) && ai.totalAmount > 0) {
+      const currency = (ai.currency ?? "EUR").toUpperCase();
+      amount = `${ai.totalAmount.toFixed(2)} ${currency}`;
+    }
+
+    // =====================================================
+    // PASO 3: Subir a Storage
+    // =====================================================
     const ext = (() => {
       const dotIndex = originalName.lastIndexOf(".");
       if (dotIndex === -1) return "";
@@ -123,7 +173,7 @@ export async function POST(request: Request) {
 
     const upload = await supabase.storage
       .from("invoices")
-      .upload(storagePath, file, {
+      .upload(storagePath, fileBuffer, {
         cacheControl: "3600",
         upsert: false,
         contentType: mime,
@@ -134,15 +184,18 @@ export async function POST(request: Request) {
       continue;
     }
 
+    // =====================================================
+    // PASO 4: Crear factura con datos extraídos por IA
+    // =====================================================
     const insert = await supabase
       .from("invoices")
       .insert({
         id: crypto.randomUUID(),
         user_id: user.id,
-        date: dateStr,
-        supplier: "Proveedor pendiente",
-        category: "Sin clasificar",
-        amount: "0.00 EUR",
+        date: invoiceDate,
+        supplier,
+        category,
+        amount,
         status: "Pendiente",
         period_type,
         period_key,
@@ -151,7 +204,7 @@ export async function POST(request: Request) {
         file_name_original: originalName,
         file_mime_type: mime,
         file_size: file.size,
-        upload_source: "web_upload",
+        upload_source: uploadSource,
         archival_only: archivalOnly,
       })
       .select("id")
@@ -178,7 +231,7 @@ export async function POST(request: Request) {
           );
         } else {
           const fileUrl = signed.signedUrl;
-          const subject = `Factura subida desde la web - ${clientDisplayName} - ${dateStr}`;
+          const subject = `Factura subida desde la web - ${clientDisplayName} - ${invoiceDate}`;
           const html = `
       <p>Hola,</p>
       <p>
@@ -245,7 +298,14 @@ export async function POST(request: Request) {
       }
     }
 
-    results.push({ originalName, id: invoiceId });
+    results.push({
+      originalName,
+      id: invoiceId,
+      supplier,
+      category,
+      amount,
+      date: invoiceDate,
+    });
   }
 
   return NextResponse.json({ results });
