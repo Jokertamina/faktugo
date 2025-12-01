@@ -329,16 +329,62 @@ export async function POST(request: Request) {
           const baseCategory = ai.category || heuristicCategory;
           const concept = ai.concept;
           const category = concept ? `${baseCategory} - ${concept}` : baseCategory;
+          const invoiceNumber = ai.invoiceNumber || null;
 
           // Formatear importe si la IA lo detectó
           let amount = "0.00 EUR";
+          let totalAmountNum = 0;
           if (ai.totalAmount != null && Number.isFinite(ai.totalAmount) && ai.totalAmount > 0) {
+            totalAmountNum = ai.totalAmount;
             const currency = (ai.currency ?? "EUR").toUpperCase();
             amount = `${ai.totalAmount.toFixed(2)} ${currency}`;
           }
 
           // Usar fecha de la IA si está disponible, sino fecha del email
           const invoiceDate = ai.date || dateStr;
+
+          // =====================================================
+          // Verificar duplicados antes de insertar
+          // =====================================================
+          let duplicateQuery = supabase
+            .from("invoices")
+            .select("id, supplier, date, amount, invoice_number")
+            .eq("user_id", userId)
+            .eq("date", invoiceDate)
+            .ilike("supplier", supplier);
+
+          if (totalAmountNum > 0) {
+            duplicateQuery = duplicateQuery.eq("amount", amount);
+          }
+
+          const { data: possibleDuplicates } = await duplicateQuery;
+
+          if (possibleDuplicates && possibleDuplicates.length > 0) {
+            if (invoiceNumber) {
+              const exactDuplicate = possibleDuplicates.find(
+                (inv) => inv.invoice_number === invoiceNumber
+              );
+              if (exactDuplicate) {
+                console.log(`Factura duplicada detectada en email: Nº ${invoiceNumber} de ${supplier}`);
+                await supabase.storage.from("invoices").remove([storagePath]);
+                results.push({
+                  userId,
+                  attachmentId: att.id,
+                  error: `Factura duplicada (Nº ${invoiceNumber})`,
+                });
+                continue;
+              }
+            } else {
+              console.log(`Posible duplicado en email: ${supplier}, ${invoiceDate}, ${amount}`);
+              await supabase.storage.from("invoices").remove([storagePath]);
+              results.push({
+                userId,
+                attachmentId: att.id,
+                error: `Posible duplicado de ${supplier}`,
+              });
+              continue;
+            }
+          }
 
           const periodInfo = computePeriodFromDate(invoiceDate, "month");
 
@@ -351,6 +397,7 @@ export async function POST(request: Request) {
               supplier,
               category,
               amount,
+              invoice_number: invoiceNumber,
               status: "Pendiente",
               period_type: periodInfo.period_type,
               period_key: periodInfo.period_key,

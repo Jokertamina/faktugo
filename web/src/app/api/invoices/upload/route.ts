@@ -154,11 +154,55 @@ export async function POST(request: Request) {
     const baseCategory = ai.category || "Sin clasificar";
     const concept = ai.concept;
     const category = concept ? `${baseCategory} - ${concept}` : baseCategory;
+    const invoiceNumber = ai.invoiceNumber || null;
 
     let amount = "0.00 EUR";
+    let totalAmountNum = 0;
     if (ai.totalAmount != null && Number.isFinite(ai.totalAmount) && ai.totalAmount > 0) {
+      totalAmountNum = ai.totalAmount;
       const currency = (ai.currency ?? "EUR").toUpperCase();
       amount = `${ai.totalAmount.toFixed(2)} ${currency}`;
+    }
+
+    // =====================================================
+    // PASO 2.5: Verificar si ya existe una factura duplicada
+    // =====================================================
+    // Combinamos: usuario + proveedor + fecha + importe (y número de factura si existe)
+    let duplicateQuery = supabase
+      .from("invoices")
+      .select("id, supplier, date, amount, invoice_number")
+      .eq("user_id", user.id)
+      .eq("date", invoiceDate)
+      .ilike("supplier", supplier); // Case-insensitive match
+
+    // Si tenemos importe, también lo usamos para filtrar
+    if (totalAmountNum > 0) {
+      duplicateQuery = duplicateQuery.eq("amount", amount);
+    }
+
+    const { data: possibleDuplicates } = await duplicateQuery;
+
+    if (possibleDuplicates && possibleDuplicates.length > 0) {
+      // Si hay número de factura, verificar si coincide exactamente
+      if (invoiceNumber) {
+        const exactDuplicate = possibleDuplicates.find(
+          (inv) => inv.invoice_number === invoiceNumber
+        );
+        if (exactDuplicate) {
+          results.push({
+            originalName,
+            error: `Esta factura ya existe en el sistema (Nº ${invoiceNumber} de ${supplier}, fecha ${invoiceDate}).`,
+          });
+          continue;
+        }
+      } else {
+        // Sin número de factura, pero mismo proveedor + fecha + importe = probable duplicado
+        results.push({
+          originalName,
+          error: `Posible duplicado: ya existe una factura de ${supplier} con fecha ${invoiceDate} e importe ${amount}.`,
+        });
+        continue;
+      }
     }
 
     // =====================================================
@@ -199,6 +243,7 @@ export async function POST(request: Request) {
         supplier,
         category,
         amount,
+        invoice_number: invoiceNumber,
         status: archivalOnly ? "Archivada" : "Pendiente",
         period_type,
         period_key,
