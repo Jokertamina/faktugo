@@ -1,13 +1,23 @@
 import { NextResponse } from "next/server";
-import { getSupabaseServerClient } from "@/lib/supabaseServer";
+import { getSupabaseServerClient, getSupabaseClientWithToken } from "@/lib/supabaseServer";
 import { computePeriodFromDate } from "@/lib/invoices";
 import { analyzeInvoiceFile, isValidInvoice, getRejectionReason } from "@/lib/invoiceAI";
 
 export async function POST(request: Request) {
-  const supabase = await getSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Intentar autenticación por cookies (web) o por token Bearer (móvil)
+  let supabase = await getSupabaseServerClient();
+  let { data: { user } } = await supabase.auth.getUser();
+
+  // Si no hay usuario por cookies, intentar con token Bearer (para móvil)
+  if (!user) {
+    const authHeader = request.headers.get("Authorization");
+    if (authHeader?.startsWith("Bearer ")) {
+      const token = authHeader.slice(7);
+      supabase = getSupabaseClientWithToken(token);
+      const { data: tokenUserData } = await supabase.auth.getUser();
+      user = tokenUserData?.user ?? null;
+    }
+  }
 
   if (!user) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
@@ -169,22 +179,41 @@ export async function POST(request: Request) {
     // =====================================================
     // PASO 2.5: Verificar si ya existe una factura duplicada
     // =====================================================
-    // Combinamos: usuario + proveedor + fecha + importe (y número de factura si existe)
-    let duplicateQuery = supabase
+    // Buscar facturas del mismo usuario con misma fecha
+    // Luego comparar proveedor e importe de forma flexible
+    const { data: candidateDuplicates } = await supabase
       .from("invoices")
       .select("id, supplier, date, amount, invoice_number")
       .eq("user_id", user.id)
-      .eq("date", invoiceDate)
-      .ilike("supplier", supplier); // Case-insensitive match
+      .eq("date", invoiceDate);
 
-    // Si tenemos importe, también lo usamos para filtrar
-    if (totalAmountNum > 0) {
-      duplicateQuery = duplicateQuery.eq("amount", amount);
-    }
+    // Función para normalizar texto para comparación
+    const normalize = (s: string) =>
+      s.toLowerCase().replace(/[^a-z0-9]/g, "").trim();
 
-    const { data: possibleDuplicates } = await duplicateQuery;
+    const supplierNorm = normalize(supplier);
+    const amountNorm = amount.replace(/\s+/g, ""); // "18.15 EUR" -> "18.15EUR"
 
-    if (possibleDuplicates && possibleDuplicates.length > 0) {
+    // Buscar duplicados comparando de forma flexible
+    const possibleDuplicates = (candidateDuplicates || []).filter((inv) => {
+      const invSupplierNorm = normalize(inv.supplier || "");
+      const invAmountNorm = (inv.amount || "").replace(/\s+/g, "");
+
+      // Comparar proveedor: al menos uno contiene al otro (para variaciones)
+      const supplierMatch =
+        supplierNorm.includes(invSupplierNorm) ||
+        invSupplierNorm.includes(supplierNorm) ||
+        supplierNorm === invSupplierNorm;
+
+      // Comparar importe exacto si ambos tienen importe
+      const amountMatch =
+        totalAmountNum === 0 || // Si no hay importe detectado, ignorar
+        invAmountNorm === amountNorm;
+
+      return supplierMatch && amountMatch;
+    });
+
+    if (possibleDuplicates.length > 0) {
       // Si hay número de factura, verificar si coincide exactamente
       if (invoiceNumber) {
         const exactDuplicate = possibleDuplicates.find(
@@ -197,6 +226,7 @@ export async function POST(request: Request) {
           });
           continue;
         }
+        // Tiene número de factura diferente, podría ser otra factura del mismo proveedor/día
       } else {
         // Sin número de factura, pero mismo proveedor + fecha + importe = probable duplicado
         results.push({
