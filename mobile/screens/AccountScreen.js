@@ -19,6 +19,7 @@ export default function AccountScreen() {
   const [savingProfile, setSavingProfile] = useState(false);
   const [periodMode, setPeriodMode] = useState("month"); // "month" | "week"
   const [rootFolder, setRootFolder] = useState("/FaktuGo");
+  const [signingOut, setSigningOut] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -196,6 +197,25 @@ export default function AccountScreen() {
       Alert.alert("No se pudo guardar", "Intentalo de nuevo mas tarde.");
     } finally {
       setSavingProfile(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    const supabase = getSupabaseClient();
+    if (!supabase) return;
+
+    setSigningOut(true);
+    try {
+      const { error } = await supabase.auth.signOut({ scope: 'local' });
+      if (error) {
+        console.warn("Error al cerrar sesion:", error);
+        Alert.alert("No se pudo cerrar sesión", "Inténtalo de nuevo más tarde.");
+      }
+    } catch (e) {
+      console.warn("Error inesperado al cerrar sesion:", e);
+      Alert.alert("No se pudo cerrar sesión", "Inténtalo de nuevo más tarde.");
+    } finally {
+      setSigningOut(false);
     }
   };
 
@@ -510,6 +530,37 @@ export default function AccountScreen() {
               </Text>
             </TouchableOpacity>
           </View>
+
+        {/* Cerrar sesión */}
+        <View style={{ marginTop: 12 }}>
+          <TouchableOpacity
+            onPress={handleSignOut}
+            disabled={signingOut}
+            style={{
+              backgroundColor: "#1F2937",
+              borderRadius: 16,
+              padding: 16,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 10,
+              borderWidth: 1,
+              borderColor: "#374151",
+            }}
+          >
+            {signingOut ? (
+              <ActivityIndicator size="small" color="#EF4444" />
+            ) : (
+              <Ionicons name="log-out-outline" size={18} color="#EF4444" />
+            )}
+            <Text style={{ color: "#EF4444", fontSize: 14, fontWeight: "500" }}>
+              {signingOut ? "Cerrando sesión..." : "Cerrar sesión"}
+            </Text>
+          </TouchableOpacity>
+          <Text style={{ color: "#6B7280", fontSize: 11, textAlign: "center", marginTop: 8 }}>
+            Solo cierra sesión en este dispositivo
+          </Text>
+        </View>
         </ScrollView>
       </View>
     );

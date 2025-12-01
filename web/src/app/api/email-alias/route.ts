@@ -1,5 +1,20 @@
 import { NextResponse } from "next/server";
-import { getSupabaseServerClient } from "@/lib/supabaseServer";
+import { getSupabaseServerClient, getSupabaseClientWithToken } from "@/lib/supabaseServer";
+import { headers } from "next/headers";
+
+async function getAuthenticatedSupabase() {
+  const headersList = await headers();
+  const authHeader = headersList.get("authorization");
+  
+  // Si hay Bearer token (móvil), usar ese
+  if (authHeader?.startsWith("Bearer ")) {
+    const token = authHeader.slice(7);
+    return getSupabaseClientWithToken(token);
+  }
+  
+  // Si no, usar cookies (web)
+  return getSupabaseServerClient();
+}
 
 async function getOrCreateEmailAlias(userId: string) {
   const supabase = await getSupabaseServerClient();
@@ -155,7 +170,7 @@ async function getOrCreateEmailAlias(userId: string) {
 
 export async function GET() {
   try {
-    const supabase = await getSupabaseServerClient();
+    const supabase = await getAuthenticatedSupabase();
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -206,7 +221,7 @@ export async function PATCH(request: Request) {
       );
     }
 
-    const supabase = await getSupabaseServerClient();
+    const supabase = await getAuthenticatedSupabase();
     const {
       data: { user },
     } = await supabase.auth.getUser();

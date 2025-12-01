@@ -343,6 +343,10 @@ export default function HomeScreen({ navigation, invoices, setInvoices }) {
 
   const totalThisMonthLabel = `${totalThisMonth.toFixed(2)} EUR`;
 
+  const pendingCount = Array.isArray(invoices)
+    ? invoices.filter((inv) => inv.status === "Pendiente").length
+    : 0;
+
   const recentInvoices = invoices.slice(0, 5);
 
   return (
@@ -372,7 +376,7 @@ export default function HomeScreen({ navigation, invoices, setInvoices }) {
         </View>
 
         {/* Stats Cards */}
-        <View style={{ flexDirection: "row", gap: 12, marginBottom: 24 }}>
+        <View style={{ flexDirection: "row", gap: 12, marginBottom: 12 }}>
           <View style={{
             flex: 1,
             backgroundColor: "#0F172A",
@@ -404,6 +408,35 @@ export default function HomeScreen({ navigation, invoices, setInvoices }) {
             <Text style={{ color: "#4B5563", fontSize: 11, marginTop: 2 }}>acumulado</Text>
           </View>
         </View>
+
+        {/* Pending Card - Clickable */}
+        {pendingCount > 0 && (
+          <TouchableOpacity
+            onPress={() => navigation.navigate("Invoices", { filter: "Pendiente" })}
+            style={{
+              backgroundColor: "#0F172A",
+              borderRadius: 16,
+              padding: 16,
+              borderWidth: 1,
+              borderColor: "#F59E0B30",
+              marginBottom: 24,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <Ionicons name="time-outline" size={20} color="#F59E0B" />
+              <Text style={{ color: "#F59E0B", fontSize: 14, fontWeight: "600", marginLeft: 10 }}>
+                {pendingCount} factura{pendingCount !== 1 ? "s" : ""} pendiente{pendingCount !== 1 ? "s" : ""}
+              </Text>
+            </View>
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <Text style={{ color: "#F59E0B", fontSize: 12 }}>Enviar</Text>
+              <Ionicons name="chevron-forward" size={16} color="#F59E0B" />
+            </View>
+          </TouchableOpacity>
+        )}
 
         {/* Recent Invoices Section */}
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>

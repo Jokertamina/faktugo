@@ -71,6 +71,11 @@ export default async function DashboardPage() {
   const topCategoryName = topCategoryEntry ? topCategoryEntry[0] : "Sin datos";
   const topCategoryAmount = topCategoryEntry ? topCategoryEntry[1] : 0;
 
+  // Estadísticas adicionales
+  const pendingCount = invoices.filter((inv) => inv.status === "Pendiente").length;
+  const sentCount = invoices.filter((inv) => inv.status === "Enviada").length;
+  const archivedCount = invoices.filter((inv) => inv.status === "Archivada" || inv.archival_only).length;
+
   const { data: profile } = await supabase
     .from("profiles")
     .select("display_name,first_name,last_name,type,company_name,country,gestoria_email")
@@ -79,74 +84,108 @@ export default async function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-[#050816] text-slate-50">
-      <main className="mx-auto max-w-6xl px-6 py-10 font-sans space-y-8">
-        <header className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+      <main className="mx-auto max-w-6xl px-4 py-6 font-sans space-y-6 sm:px-6 sm:py-10 sm:space-y-8">
+        <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-              Panel de FaktuGo
+            <h1 className="text-xl font-semibold tracking-tight sm:text-3xl">
+              Panel
             </h1>
-            <p className="mt-1 text-sm text-slate-300">
-              Resumen rapido de tu cuenta, ultimas facturas y accesos a las funciones clave.
+            <p className="mt-1 hidden text-sm text-slate-300 sm:block">
+              Resumen rápido de tu cuenta y facturas.
             </p>
           </div>
           <div className="flex items-center gap-3">
             <Link
               href="/invoices/upload"
-              className="hidden rounded-full bg-[#22CC88] px-4 py-2 text-xs font-semibold text-slate-900 shadow-md shadow-emerald-500/30 hover:bg-[#18a96f] sm:inline-flex"
+              className="rounded-full bg-[#22CC88] px-4 py-2 text-xs font-semibold text-slate-900 shadow-md shadow-emerald-500/30 hover:bg-[#18a96f]"
             >
-              Subir facturas
+              + Subir facturas
             </Link>
-            <div className="rounded-2xl border border-slate-800 bg-[#020617] px-4 py-3 text-xs text-slate-200">
+            <div className="hidden rounded-2xl border border-slate-800 bg-[#020617] px-4 py-3 text-xs text-slate-200 sm:block">
               <p className="font-semibold">Sesión iniciada</p>
-              <p className="mt-1 text-slate-300">
+              <p className="mt-1 text-slate-300 truncate max-w-[180px]">
                 {user.user_metadata?.full_name || user.email}
               </p>
             </div>
           </div>
         </header>
 
-        <div className="grid gap-4 text-xs sm:grid-cols-3">
-          <div className="rounded-2xl border border-slate-800 bg-[#0B1220] px-4 py-3">
-            <p className="text-[11px] text-slate-400">Gasto mes actual</p>
-            <p className="mt-1 text-lg font-semibold text-slate-50">
-              {monthTotal.toLocaleString("es-ES", {
-                style: "currency",
-                currency: "EUR",
-              })}
-            </p>
-            <p className="mt-1 text-[11px] text-slate-500">
-              {currentMonthName} {currentYear}
-            </p>
+        {/* Stats Grid */}
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="rounded-2xl border border-slate-800 bg-gradient-to-br from-[#0F172A] to-[#0B1220] p-5">
+            <div className="mb-3 flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10">
+                <span className="text-lg">💰</span>
+              </div>
+              <div>
+                <p className="text-xs text-slate-400">Gasto del mes</p>
+                <p className="text-xl font-bold text-emerald-400">
+                  {monthTotal.toLocaleString("es-ES", { style: "currency", currency: "EUR" })}
+                </p>
+              </div>
+            </div>
+            <p className="text-xs text-slate-500">{currentMonthName} {currentYear}</p>
           </div>
-          <div className="rounded-2xl border border-slate-800 bg-[#0B1220] px-4 py-3">
-            <p className="text-[11px] text-slate-400">Facturas este mes</p>
-            <p className="mt-1 text-lg font-semibold text-slate-50">{monthCount}</p>
-            <p className="mt-1 text-[11px] text-slate-500">
-              Contando las facturas con fecha en el mes actual.
-            </p>
+
+          <div className="rounded-2xl border border-slate-800 bg-gradient-to-br from-[#0F172A] to-[#0B1220] p-5">
+            <div className="mb-3 flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10">
+                <span className="text-lg">📄</span>
+              </div>
+              <div>
+                <p className="text-xs text-slate-400">Facturas del mes</p>
+                <p className="text-xl font-bold text-blue-400">{monthCount}</p>
+              </div>
+            </div>
+            <p className="text-xs text-slate-500">Total: {invoices.length} facturas</p>
           </div>
-          <div className="rounded-2xl border border-slate-800 bg-[#0B1220] px-4 py-3">
-            <p className="text-[11px] text-slate-400">Top categoría del mes</p>
-            <p className="mt-1 text-lg font-semibold text-slate-50">{topCategoryName}</p>
+
+          <Link
+            href="/invoices?estado=Pendiente"
+            className="rounded-2xl border border-slate-800 bg-gradient-to-br from-[#0F172A] to-[#0B1220] p-5 transition hover:border-amber-500/30 hover:bg-[#0F172A]"
+          >
+            <div className="mb-3 flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/10">
+                <span className="text-lg">⏳</span>
+              </div>
+              <div>
+                <p className="text-xs text-slate-400">Pendientes</p>
+                <p className="text-xl font-bold text-amber-400">{pendingCount}</p>
+              </div>
+            </div>
+            <p className="text-xs text-slate-500">Enviadas: {sentCount} →</p>
+          </Link>
+
+          <Link
+            href="/invoices"
+            className="rounded-2xl border border-slate-800 bg-gradient-to-br from-[#0F172A] to-[#0B1220] p-5 transition hover:border-purple-500/30 hover:bg-[#0F172A]"
+          >
+            <div className="mb-3 flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-500/10">
+                <span className="text-lg">🏷️</span>
+              </div>
+              <div>
+                <p className="text-xs text-slate-400">Top categoría</p>
+                <p className="text-lg font-bold text-purple-400 truncate max-w-[140px]" title={topCategoryName}>
+                  {topCategoryName.split(" - ")[0]}
+                </p>
+              </div>
+            </div>
             {topCategoryEntry ? (
-              <p className="mt-1 text-[11px] text-slate-500">
-                ≈
-                {topCategoryAmount.toLocaleString("es-ES", {
-                  style: "currency",
-                  currency: "EUR",
-                })}
+              <p className="text-xs text-slate-500">
+                {topCategoryAmount.toLocaleString("es-ES", { style: "currency", currency: "EUR" })} →
               </p>
             ) : (
-              <p className="mt-1 text-[11px] text-slate-500">Sin datos suficientes.</p>
+              <p className="text-xs text-slate-500">Ver facturas →</p>
             )}
-          </div>
+          </Link>
         </div>
 
-        <section className="grid gap-6 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+        <section className="grid gap-4 sm:gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
           <div className="space-y-4">
-            <div className="rounded-3xl border border-slate-800 bg-[#0B1220] p-5 shadow-2xl shadow-black/60">
+            <div className="rounded-2xl sm:rounded-3xl border border-slate-800 bg-[#0B1220] p-4 sm:p-5 shadow-2xl shadow-black/60">
               <div className="mb-3 flex items-center justify-between">
-                <h2 className="text-sm font-semibold text-slate-50">Ultimas facturas</h2>
+                <h2 className="text-sm font-semibold text-slate-50">Últimas facturas</h2>
                 <Link
                   href="/invoices"
                   className="text-xs text-slate-300 hover:text-slate-100 hover:underline"
@@ -156,35 +195,48 @@ export default async function DashboardPage() {
               </div>
               <div className="space-y-2 text-sm">
                 {lastInvoices.length === 0 && (
-                  <p className="text-slate-400 text-sm">
-                    Aun no hay facturas sincronizadas. Cuando conectemos el backend real veras aqui tus
-                    ultimos movimientos.
-                  </p>
-                )}
-                {lastInvoices.map((inv) => (
-                  <div
-                    key={inv.id}
-                    className="flex items-center justify-between rounded-2xl bg-white/5 px-4 py-3"
-                  >
-                    <div>
-                      <p className="font-medium text-slate-50">{inv.supplier}</p>
-                      <p className="text-xs text-slate-400">
-                        {inv.date} · {inv.category}
-                      </p>
-                    </div>
-                    <p className="text-sm font-semibold text-[#22CC88]">{inv.amount}</p>
+                  <div className="flex flex-col items-center py-8 text-center">
+                    <span className="text-3xl mb-3">📭</span>
+                    <p className="text-slate-400 text-sm">
+                      Aún no hay facturas. ¡Sube tu primera factura!
+                    </p>
                   </div>
-                ))}
+                )}
+                {lastInvoices.map((inv) => {
+                  const statusInfo = inv.status === "Enviada"
+                    ? { color: "text-emerald-400", bg: "bg-emerald-500/10", icon: "✓" }
+                    : inv.status === "Archivada" || inv.archival_only
+                    ? { color: "text-purple-400", bg: "bg-purple-500/10", icon: "📦" }
+                    : { color: "text-amber-400", bg: "bg-amber-500/10", icon: "⏳" };
+
+                  return (
+                    <Link
+                      key={inv.id}
+                      href={`/invoices/${inv.id}`}
+                      className="flex items-center gap-3 rounded-xl bg-white/5 px-4 py-3 transition hover:bg-white/10"
+                    >
+                      <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${statusInfo.bg}`}>
+                        <span className="text-sm">{statusInfo.icon}</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-slate-50 truncate">{inv.supplier}</p>
+                        <p className="text-xs text-slate-400 truncate">
+                          {inv.date} · {inv.category?.split(" - ")[0] || "Sin categoría"}
+                        </p>
+                      </div>
+                      <p className="text-sm font-semibold text-[#22CC88]">{inv.amount}</p>
+                    </Link>
+                  );
+                })}
               </div>
             </div>
           </div>
 
           <div className="space-y-4">
-            <div className="rounded-3xl border border-slate-800 bg-[#0B1220] p-5">
+            <div className="rounded-2xl sm:rounded-3xl border border-slate-800 bg-[#0B1220] p-4 sm:p-5">
               <h2 className="text-sm font-semibold text-slate-50">Tu cuenta</h2>
-              <p className="mt-2 text-xs text-slate-300">
-                Datos basicos de tu perfil en FaktuGo. Esta capa sirve como base de CRM (tipo de
-                cliente, nombre comercial, pais) sin almacenar informacion sensible de pagos.
+              <p className="mt-2 hidden text-xs text-slate-300 sm:block">
+                Datos básicos de tu perfil en FaktuGo.
               </p>
               <div className="mt-3">
                 <ProfileForm
@@ -196,11 +248,10 @@ export default async function DashboardPage() {
             </div>
             <EmailAliasCard />
 
-            <div className="rounded-3xl border border-slate-800 bg-[#020617] p-5">
+            <div className="hidden rounded-2xl sm:rounded-3xl border border-slate-800 bg-[#020617] p-4 sm:p-5 sm:block">
               <h2 className="text-sm font-semibold text-slate-50">Siguiente paso</h2>
               <p className="mt-2 text-xs text-slate-300">
-                Pronto añadiremos aqui enlaces a integraciones con Stripe para facturacion, panel de
-                gestorias y configuracion avanzada de automatizaciones.
+                Pronto añadiremos integraciones con Stripe, panel de gestorías y automatizaciones.
               </p>
             </div>
           </div>

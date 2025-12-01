@@ -4,6 +4,56 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { getSupabaseBrowserClient } from "@/lib/supabaseBrowser";
 
+// Traducir errores de Supabase a mensajes claros en español
+function getErrorMessage(error: any, mode: "login" | "signup"): string {
+  const code = error?.code || "";
+  const message = (error?.message || "").toLowerCase();
+
+  // Errores de login
+  if (message.includes("invalid login credentials")) {
+    return "Email o contraseña incorrectos. Por favor, verifica tus datos.";
+  }
+  if (message.includes("email not confirmed")) {
+    return "Tu email aún no está confirmado. Revisa tu bandeja de entrada y haz clic en el enlace de confirmación.";
+  }
+  if (message.includes("user not found") || code === "user_not_found") {
+    return "No existe ninguna cuenta con este email. ¿Quieres crear una cuenta nueva?";
+  }
+
+  // Errores de registro
+  if (message.includes("user already registered") || message.includes("already exists")) {
+    return "Ya existe una cuenta con este email. Prueba a iniciar sesión.";
+  }
+  if (message.includes("password") && message.includes("weak")) {
+    return "La contraseña es demasiado débil. Usa al menos 6 caracteres con letras y números.";
+  }
+  if (message.includes("password") && (message.includes("short") || message.includes("length"))) {
+    return "La contraseña debe tener al menos 6 caracteres.";
+  }
+
+  // Errores de email
+  if (message.includes("invalid email") || message.includes("email") && message.includes("invalid")) {
+    return "El formato del email no es válido. Revisa que esté bien escrito.";
+  }
+  if (message.includes("email rate limit")) {
+    return "Has intentado demasiadas veces. Espera unos minutos antes de volver a intentarlo.";
+  }
+
+  // Errores de red/servidor
+  if (message.includes("network") || message.includes("fetch")) {
+    return "Error de conexión. Comprueba tu conexión a internet e inténtalo de nuevo.";
+  }
+  if (message.includes("rate limit") || message.includes("too many requests")) {
+    return "Demasiados intentos. Por favor, espera unos minutos antes de volver a intentarlo.";
+  }
+
+  // Mensaje genérico según el modo
+  if (mode === "login") {
+    return "No se pudo iniciar sesión. Verifica tu email y contraseña.";
+  }
+  return "No se pudo crear la cuenta. Inténtalo de nuevo.";
+}
+
 export default function LoginForm() {
   const router = useRouter();
   const [mode, setMode] = useState<"login" | "signup">("login");
@@ -56,7 +106,7 @@ export default function LoginForm() {
       router.push("/dashboard");
       router.refresh();
     } catch (err: any) {
-      const message = err?.message ?? "No se pudo completar la operacion";
+      const message = getErrorMessage(err, mode);
       setError(message);
     } finally {
       setLoading(false);
@@ -146,7 +196,12 @@ export default function LoginForm() {
       </div>
 
       {error && (
-        <p className="text-xs text-red-400">{error}</p>
+        <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3">
+          <div className="flex items-start gap-3">
+            <span className="text-red-400">⚠️</span>
+            <p className="text-sm text-red-300">{error}</p>
+          </div>
+        </div>
       )}
 
       <button

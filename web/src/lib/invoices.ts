@@ -8,7 +8,8 @@ export type Invoice = CoreInvoice & {
   supplier: string;
   category: string;
   amount: string; // formatted amount, e.g. "45.60 EUR"
-  status: "Enviada" | "Pendiente";
+  status: "Enviada" | "Pendiente" | "Archivada";
+  invoice_number?: string | null;
   // Sobreescribimos para asegurar el tipo correcto
   sent_to_gestoria_status?: "pending" | "sent" | "failed" | null;
 };
@@ -61,7 +62,7 @@ export async function getInvoices(supabaseOverride?: SupabaseClient): Promise<In
   const { data, error } = await supabase
     .from("invoices")
     .select(
-      "id, date, supplier, category, amount, status, archival_only, period_type, period_key, folder_path, file_path, file_name_original, file_mime_type, file_size, upload_source, sent_to_gestoria_at, sent_to_gestoria_status, sent_to_gestoria_message_id"
+      "id, date, supplier, category, amount, status, invoice_number, archival_only, period_type, period_key, folder_path, file_path, file_name_original, file_mime_type, file_size, upload_source, sent_to_gestoria_at, sent_to_gestoria_status, sent_to_gestoria_message_id"
     )
     .order("date", { ascending: false });
 
@@ -97,7 +98,7 @@ export async function getInvoiceById(
   const { data, error } = await supabase
     .from("invoices")
     .select(
-      "id, date, supplier, category, amount, status, archival_only, period_type, period_key, folder_path, file_path, file_name_original, file_mime_type, file_size, upload_source, sent_to_gestoria_at, sent_to_gestoria_status, sent_to_gestoria_message_id"
+      "id, date, supplier, category, amount, status, invoice_number, archival_only, period_type, period_key, folder_path, file_path, file_name_original, file_mime_type, file_size, upload_source, sent_to_gestoria_at, sent_to_gestoria_status, sent_to_gestoria_message_id"
     )
     .eq("id", id)
     .maybeSingle();

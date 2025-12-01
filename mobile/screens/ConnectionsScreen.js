@@ -1,13 +1,117 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, Clipboard, Alert, ActivityIndicator } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { styles } from "../styles";
 import { getSupabaseClient } from "../supabaseClient";
 
-export default function ConnectionsScreen() {
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || "https://faktugo.com";
+
+export default function ConnectionsScreen({ invoices = [], onRefresh }) {
   const [email, setEmail] = useState(null);
+  const [emailAlias, setEmailAlias] = useState(null);
   const [loadingUser, setLoadingUser] = useState(true);
-  const [signingOut, setSigningOut] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [sendingBatch, setSendingBatch] = useState(false);
+  const [batchProgress, setBatchProgress] = useState({ sent: 0, total: 0 });
+
+  const handleCopyEmail = () => {
+    if (!emailAlias) return;
+    Clipboard.setString(emailAlias);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 3000);
+  };
+
+  // Obtener facturas pendientes del mes actual
+  const now = new Date();
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
+  
+  const pendingThisMonth = invoices.filter((inv) => {
+    if (inv.status !== "Pendiente") return false;
+    if (inv.archival_only) return false;
+    if (inv.sent_to_gestoria_status === "sent") return false;
+    
+    const invDate = new Date(inv.date);
+    return invDate.getMonth() === currentMonth && invDate.getFullYear() === currentYear;
+  });
+
+  const handleSendBatch = async () => {
+    if (pendingThisMonth.length === 0) {
+      Alert.alert("Sin facturas", "No hay facturas pendientes de este mes para enviar.");
+      return;
+    }
+
+    Alert.alert(
+      "Enviar a gestoría",
+      `¿Enviar ${pendingThisMonth.length} factura${pendingThisMonth.length !== 1 ? "s" : ""} pendiente${pendingThisMonth.length !== 1 ? "s" : ""} de este mes a tu gestoría?`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Enviar",
+          onPress: async () => {
+            const supabase = getSupabaseClient();
+            if (!supabase) return;
+
+            setSendingBatch(true);
+            setBatchProgress({ sent: 0, total: pendingThisMonth.length });
+
+            try {
+              const { data: sessionData } = await supabase.auth.getSession();
+              const accessToken = sessionData?.session?.access_token;
+
+              if (!accessToken) {
+                Alert.alert("Error", "No se pudo obtener la sesión.");
+                setSendingBatch(false);
+                return;
+              }
+
+              let sentCount = 0;
+              let failedCount = 0;
+
+              for (const inv of pendingThisMonth) {
+                try {
+                  const res = await fetch(`${API_BASE_URL}/api/gestoria/send`, {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                      Authorization: `Bearer ${accessToken}`,
+                    },
+                    body: JSON.stringify({ invoiceId: inv.id }),
+                  });
+
+                  if (res.ok) {
+                    sentCount++;
+                  } else {
+                    failedCount++;
+                  }
+                } catch {
+                  failedCount++;
+                }
+                setBatchProgress({ sent: sentCount + failedCount, total: pendingThisMonth.length });
+              }
+
+              setSendingBatch(false);
+              
+              if (failedCount === 0) {
+                Alert.alert("Completado", `Se han enviado ${sentCount} facturas a tu gestoría.`);
+              } else {
+                Alert.alert(
+                  "Parcialmente completado",
+                  `Enviadas: ${sentCount}\nFallidas: ${failedCount}`
+                );
+              }
+
+              if (onRefresh) onRefresh();
+            } catch (e) {
+              console.warn("Error en envío masivo:", e);
+              Alert.alert("Error", "No se pudo completar el envío masivo.");
+              setSendingBatch(false);
+            }
+          },
+        },
+      ]
+    );
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -28,6 +132,34 @@ export default function ConnectionsScreen() {
 
         if (isMounted) {
           setEmail(user?.email ?? null);
+        }
+
+        // Cargar email_alias desde la API (tabla email_ingestion_aliases)
+        if (user) {
+          try {
+            const { data: sessionData } = await supabase.auth.getSession();
+            const accessToken = sessionData?.session?.access_token;
+            
+            if (accessToken) {
+              const res = await fetch(`${API_BASE_URL}/api/email-alias`, {
+                headers: {
+                  Authorization: `Bearer ${accessToken}`,
+                },
+              });
+              
+              if (res.ok) {
+                const aliasData = await res.json();
+                if (isMounted && aliasData?.alias) {
+                  setEmailAlias(aliasData.alias);
+                }
+              }
+            }
+          } catch (aliasError) {
+            console.warn("No se pudo obtener el email_alias:", aliasError);
+          }
+        }
+
+        if (isMounted) {
           setLoadingUser(false);
         }
       } catch (e) {
@@ -44,26 +176,6 @@ export default function ConnectionsScreen() {
       isMounted = false;
     };
   }, []);
-
-  const handleSignOut = async () => {
-    const supabase = getSupabaseClient();
-    if (!supabase) return;
-
-    setSigningOut(true);
-    try {
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        console.warn("Error al cerrar sesion desde Conexiones:", error);
-        Alert.alert("No se pudo cerrar sesion", "Intentalo de nuevo mas tarde.");
-      }
-      // App escuchara el cambio de sesion y navegara a AuthScreen.
-    } catch (e) {
-      console.warn("Error inesperado al cerrar sesion:", e);
-      Alert.alert("No se pudo cerrar sesion", "Intentalo de nuevo mas tarde.");
-    } finally {
-      setSigningOut(false);
-    }
-  };
 
   return (
     <View style={styles.container}>
@@ -107,15 +219,55 @@ export default function ConnectionsScreen() {
               }}
             />
 
-            <TouchableOpacity disabled style={{ opacity: 0.7 }}>
-              <Text style={{ color: "#E5E7EB", fontSize: 13 }}>
-                Correo interno FaktuGo (proximamente)
-              </Text>
-              <Text style={{ color: "#9CA3AF", fontSize: 12 }}>
-                Pronto tendras una direccion especial (tipo usuario@invoice.faktugo.com)
-                para reenviar facturas y que se guarden automaticamente en tu cuenta.
-              </Text>
-            </TouchableOpacity>
+            <View>
+              <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 6 }}>
+                <Ionicons name="mail-outline" size={16} color={emailAlias ? "#22CC88" : "#6B7280"} />
+                <Text style={{ color: "#E5E7EB", fontSize: 13, marginLeft: 8, fontWeight: "500" }}>
+                  Correo interno FaktuGo
+                </Text>
+                {emailAlias && (
+                  <View style={{
+                    backgroundColor: "#22CC8820",
+                    paddingHorizontal: 8,
+                    paddingVertical: 2,
+                    borderRadius: 999,
+                    marginLeft: 8,
+                  }}>
+                    <Text style={{ color: "#22CC88", fontSize: 10, fontWeight: "600" }}>ACTIVO</Text>
+                  </View>
+                )}
+              </View>
+              {emailAlias ? (
+                <View>
+                  <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 4 }}>
+                    <Text style={{ color: "#22CC88", fontSize: 14, fontWeight: "600", flex: 1 }}>
+                      {emailAlias}
+                    </Text>
+                    <TouchableOpacity
+                      onPress={handleCopyEmail}
+                      style={{
+                        padding: 8,
+                        borderRadius: 8,
+                        backgroundColor: copied ? "#22CC8820" : "#1E293B",
+                      }}
+                    >
+                      <Ionicons
+                        name={copied ? "checkmark" : "copy-outline"}
+                        size={18}
+                        color={copied ? "#22CC88" : "#9CA3AF"}
+                      />
+                    </TouchableOpacity>
+                  </View>
+                  <Text style={{ color: "#9CA3AF", fontSize: 12 }}>
+                    Reenvía facturas a este correo y se guardarán automáticamente en tu cuenta.
+                  </Text>
+                </View>
+              ) : (
+                <Text style={{ color: "#9CA3AF", fontSize: 12 }}>
+                  Genera tu correo interno desde el panel web para recibir facturas automáticamente.
+                </Text>
+              )}
+            </View>
           </View>
         </View>
 
@@ -126,39 +278,40 @@ export default function ConnectionsScreen() {
           </Text>
 
           <TouchableOpacity
-            disabled
+            onPress={handleSendBatch}
+            disabled={sendingBatch}
             style={{
-              backgroundColor: "#2A5FFF",
+              backgroundColor: pendingThisMonth.length > 0 ? "#22CC88" : "#2A5FFF",
               borderRadius: 999,
-              paddingVertical: 10,
-              alignItems: "center",
-              opacity: 0.7,
-              marginBottom: 12,
-            }}
-          >
-            <Text style={{ color: "#FFFFFF", fontSize: 13, fontWeight: "600" }}>
-              Enviar facturas del mes a la gestoria (proximamente)
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={handleSignOut}
-            disabled={signingOut}
-            style={{
-              backgroundColor: "#111827",
-              borderRadius: 999,
-              paddingVertical: 10,
+              paddingVertical: 12,
+              paddingHorizontal: 16,
               alignItems: "center",
               flexDirection: "row",
               justifyContent: "center",
               gap: 8,
+              opacity: sendingBatch ? 0.7 : 1,
+              marginBottom: 12,
             }}
           >
-            {signingOut && <ActivityIndicator size="small" color="#F9FAFB" />}
-            <Text style={{ color: "#F9FAFB", fontSize: 13, fontWeight: "500" }}>
-              {signingOut ? "Cerrando sesion..." : "Cerrar sesion"}
-            </Text>
+            {sendingBatch ? (
+              <>
+                <ActivityIndicator size="small" color="#FFFFFF" />
+                <Text style={{ color: "#FFFFFF", fontSize: 13, fontWeight: "600" }}>
+                  Enviando {batchProgress.sent}/{batchProgress.total}...
+                </Text>
+              </>
+            ) : (
+              <>
+                <Ionicons name="send" size={16} color={pendingThisMonth.length > 0 ? "#022c22" : "#FFFFFF"} />
+                <Text style={{ color: pendingThisMonth.length > 0 ? "#022c22" : "#FFFFFF", fontSize: 13, fontWeight: "600" }}>
+                  {pendingThisMonth.length > 0
+                    ? `Enviar ${pendingThisMonth.length} factura${pendingThisMonth.length !== 1 ? "s" : ""} del mes`
+                    : "Sin facturas pendientes este mes"}
+                </Text>
+              </>
+            )}
           </TouchableOpacity>
+
         </View>
       </ScrollView>
     </View>

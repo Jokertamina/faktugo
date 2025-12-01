@@ -45,7 +45,7 @@ const INITIAL_INVOICES_RAW = [
 const RootStack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
-function MainTabs({ invoices, setInvoices }) {
+function MainTabs({ invoices, setInvoices, refreshInvoices }) {
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -106,7 +106,7 @@ function MainTabs({ invoices, setInvoices }) {
         name="Connections"
         options={{ title: "Conexiones" }}
       >
-        {(props) => <ConnectionsScreen {...props} />}
+        {(props) => <ConnectionsScreen {...props} invoices={invoices} onRefresh={refreshInvoices} />}
       </Tab.Screen>
       <Tab.Screen
         name="Account"
@@ -205,6 +205,19 @@ export default function App() {
     saveInvoicesToStorage(invoices);
   }, [invoices]);
 
+  const refreshInvoices = async () => {
+    try {
+      const data = await fetchInvoicesFromSupabase();
+      if (data && Array.isArray(data) && data.length > 0) {
+        const normalized = buildInvoices(data);
+        setInvoices(normalized);
+        await saveInvoicesToStorage(normalized);
+      }
+    } catch (error) {
+      console.warn("No se pudo refrescar facturas:", error);
+    }
+  };
+
   useEffect(() => {
     if (Platform.OS !== "android") return;
 
@@ -270,13 +283,14 @@ export default function App() {
         ) : (
           <RootStack.Navigator screenOptions={{ headerShown: false }}>
             <RootStack.Screen name="MainTabs">
-              {() => <MainTabs invoices={invoices} setInvoices={setInvoices} />}
+              {() => <MainTabs invoices={invoices} setInvoices={setInvoices} refreshInvoices={refreshInvoices} />}
             </RootStack.Screen>
             <RootStack.Screen name="InvoiceDetail">
               {(props) => (
                 <InvoiceDetailScreen
                   {...props}
                   invoices={invoices}
+                  onRefresh={refreshInvoices}
                 />
               )}
             </RootStack.Screen>

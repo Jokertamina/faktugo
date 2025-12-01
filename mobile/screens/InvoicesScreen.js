@@ -83,15 +83,30 @@ function buildSections(invoices, mode) {
     groups[period_key].data.push(inv);
   });
 
-  return Object.values(groups).sort((a, b) => (a.key < b.key ? 1 : -1));
+  // Ordenar grupos por key descendente (más reciente primero)
+  // Y ordenar facturas dentro de cada grupo por fecha descendente
+  return Object.values(groups)
+    .sort((a, b) => (a.key < b.key ? 1 : -1))
+    .map((group) => ({
+      ...group,
+      data: group.data.sort((a, b) => new Date(b.date) - new Date(a.date)),
+    }));
 }
 
-export default function InvoicesScreen({ navigation, invoices }) {
+export default function InvoicesScreen({ navigation, route, invoices }) {
+  const initialFilter = route?.params?.filter || "all";
   const [viewMode, setViewMode] = useState("month"); // "month" | "week"
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all"); // "all" | "Enviada" | "Pendiente" | "archived"
+  const [statusFilter, setStatusFilter] = useState(initialFilter); // "all" | "Enviada" | "Pendiente" | "Archivada"
 
   const normalizedSearch = search.trim().toLowerCase();
+
+  // Actualizar filtro si viene de navegación
+  useEffect(() => {
+    if (route?.params?.filter) {
+      setStatusFilter(route.params.filter);
+    }
+  }, [route?.params?.filter]);
 
   useEffect(() => {
     let isMounted = true;
@@ -126,11 +141,10 @@ export default function InvoicesScreen({ navigation, invoices }) {
 
         if (normalizedSearch) {
           const supplier = String(inv.supplier ?? "").toLowerCase();
-          const category = String(inv.category ?? "").toLowerCase();
           const invoiceNum = String(inv.invoice_number ?? "").toLowerCase();
+          // Solo buscar por proveedor y número de factura, no por categoría
           if (
             !supplier.includes(normalizedSearch) &&
-            !category.includes(normalizedSearch) &&
             !invoiceNum.includes(normalizedSearch)
           ) {
             return false;
@@ -178,7 +192,7 @@ export default function InvoicesScreen({ navigation, invoices }) {
           <TextInput
             value={search}
             onChangeText={setSearch}
-            placeholder="Buscar proveedor, categoría o nº factura..."
+            placeholder="Buscar por proveedor o nº factura..."
             placeholderTextColor="#4B5563"
             style={{
               flex: 1,

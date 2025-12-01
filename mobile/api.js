@@ -48,7 +48,7 @@ export async function fetchInvoicesFromSupabase() {
     const { data, error } = await supabase
       .from("invoices")
       .select(
-        "id, date, supplier, category, amount, status, archival_only, period_type, period_key, folder_path, file_path, file_name_original, file_mime_type, file_size, upload_source, sent_to_gestoria_at, sent_to_gestoria_status"
+        "id, date, supplier, category, amount, status, invoice_number, archival_only, period_type, period_key, folder_path, file_path, file_name_original, file_mime_type, file_size, upload_source, sent_to_gestoria_at, sent_to_gestoria_status"
       )
       .order("date", { ascending: false });
 

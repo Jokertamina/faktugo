@@ -228,9 +228,9 @@ export default async function InvoicesPage({
 
   return (
     <div className="min-h-screen bg-[#050816] text-slate-50">
-      <main className="mx-auto max-w-6xl px-6 py-10 font-sans">
-        <header className="mb-8 space-y-2">
-          <div className="flex items-center gap-2 text-xs text-slate-400">
+      <main className="mx-auto max-w-6xl px-4 py-6 font-sans sm:px-6 sm:py-10">
+        <header className="mb-6 space-y-2 sm:mb-8">
+          <div className="hidden items-center gap-2 text-xs text-slate-400 sm:flex">
             <Link href="/dashboard" className="hover:underline">
               Panel
             </Link>
@@ -239,19 +239,18 @@ export default async function InvoicesPage({
           </div>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-                Facturas (demo)
+              <h1 className="text-xl font-semibold tracking-tight sm:text-3xl">
+                Facturas
               </h1>
-              <p className="mt-1 text-sm text-slate-300">
-                Vista de ejemplo basada en el documento tecnico de FaktuGo. Aqui veras tus facturas
-                cuando conectemos el backend y la sincronizacion real.
+              <p className="mt-1 hidden text-sm text-slate-300 sm:block">
+                Gestiona y consulta todas tus facturas desde aquí.
               </p>
             </div>
             <Link
               href="/invoices/upload"
-              className="inline-flex items-center justify-center rounded-full bg-[#22CC88] px-4 py-2 text-xs font-semibold text-slate-900 shadow-md shadow-emerald-500/30 hover:bg-[#18a96f]"
+              className="inline-flex items-center justify-center rounded-full bg-[#22CC88] px-4 py-2.5 text-xs font-semibold text-slate-900 shadow-md shadow-emerald-500/30 hover:bg-[#18a96f]"
             >
-              Subir facturas
+              + Subir facturas
             </Link>
           </div>
         </header>
@@ -401,14 +400,14 @@ export default async function InvoicesPage({
           )}
         </div>
 
-        <div className="overflow-hidden rounded-2xl border border-slate-800/80 bg-[#0B1220] shadow-2xl shadow-black/60">
+        <div className="overflow-x-auto rounded-2xl border border-slate-800/80 bg-[#0B1220] shadow-2xl shadow-black/60">
           <table className="min-w-full divide-y divide-slate-800 text-sm">
             <thead className="bg-white/5 text-xs font-semibold uppercase tracking-wide text-slate-300">
               <tr>
                 <th className="px-4 py-3 text-left">Fecha</th>
                 <th className="px-4 py-3 text-left">Proveedor</th>
-                <th className="px-4 py-3 text-left">Categoria</th>
-                <th className="px-4 py-3 text-left">Origen</th>
+                <th className="hidden px-4 py-3 text-left md:table-cell">Categoria</th>
+                <th className="hidden px-4 py-3 text-left lg:table-cell">Origen</th>
                 <th className="px-4 py-3 text-right">Importe</th>
                 <th className="px-4 py-3 text-left">Estado</th>
               </tr>
@@ -424,46 +423,64 @@ export default async function InvoicesPage({
                       {section.title}
                     </td>
                   </tr>
-                  {section.items.map((invoice) => (
-                    <tr key={invoice.id} className="hover:bg-white/5">
-                      <td className="px-4 py-3 align-middle text-slate-200">{invoice.date}</td>
-                      <td className="px-4 py-3 align-middle font-medium text-slate-50">
-                        <Link
-                          href={`/invoices/${invoice.id}`}
-                          className="hover:underline"
-                        >
-                          {invoice.supplier}
-                        </Link>
-                      </td>
-                      <td className="px-4 py-3 align-middle text-slate-300">{invoice.category}</td>
-                      <td className="px-4 py-3 align-middle">
-                        {(() => {
-                          const originLabel = getOriginLabel(invoice.upload_source ?? null);
-                          const baseClasses =
-                            "inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium";
-                          const colorClasses =
-                            originLabel === "Email"
-                              ? "bg-emerald-500/10 text-emerald-300 border border-emerald-500/30"
-                              : originLabel === "Móvil"
-                              ? "bg-sky-500/10 text-sky-300 border border-sky-500/30"
-                              : originLabel === "Web"
-                              ? "bg-indigo-500/10 text-indigo-300 border border-indigo-500/30"
-                              : "bg-slate-800/60 text-slate-200 border border-slate-700";
-                          return (
-                            <span className={`${baseClasses} ${colorClasses}`}>
-                              {originLabel}
+                  {section.items.map((invoice) => {
+                    const statusInfo = invoice.status === "Enviada"
+                      ? { label: "Enviada", color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/30", icon: "✓" }
+                      : (invoice.status as string) === "Archivada" || invoice.archival_only
+                      ? { label: "Archivada", color: "text-purple-400", bg: "bg-purple-500/10", border: "border-purple-500/30", icon: "📦" }
+                      : { label: "Pendiente", color: "text-amber-400", bg: "bg-amber-500/10", border: "border-amber-500/30", icon: "⏳" };
+
+                    return (
+                      <tr key={invoice.id} className="hover:bg-white/5 transition">
+                        <td className="px-4 py-3 align-middle text-slate-200">{invoice.date}</td>
+                        <td className="px-4 py-3 align-middle">
+                          <Link
+                            href={`/invoices/${invoice.id}`}
+                            className="group flex items-center gap-2"
+                          >
+                            <span className="font-medium text-slate-50 group-hover:text-[#22CC88] transition">
+                              {invoice.supplier}
                             </span>
-                          );
-                        })()}
-                      </td>
-                      <td className="px-4 py-3 align-middle text-right font-semibold text-[#22CC88]">
-                        {invoice.amount}
-                      </td>
-                      <td className="px-4 py-3 align-middle text-slate-300">
-                        {invoice.archival_only ? "Solo almacenada" : invoice.status}
-                      </td>
-                    </tr>
-                  ))}
+                            {invoice.invoice_number && (
+                              <span className="text-[10px] text-slate-500">#{invoice.invoice_number}</span>
+                            )}
+                          </Link>
+                        </td>
+                        <td className="hidden px-4 py-3 align-middle text-slate-300 max-w-[180px] truncate md:table-cell" title={invoice.category}>
+                          {invoice.category?.split(" - ")[0] || "Sin categoría"}
+                        </td>
+                        <td className="hidden px-4 py-3 align-middle lg:table-cell">
+                          {(() => {
+                            const originLabel = getOriginLabel(invoice.upload_source ?? null);
+                            const baseClasses =
+                              "inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium";
+                            const colorClasses =
+                              originLabel === "Email"
+                                ? "bg-emerald-500/10 text-emerald-300 border border-emerald-500/30"
+                                : originLabel === "Móvil"
+                                ? "bg-sky-500/10 text-sky-300 border border-sky-500/30"
+                                : originLabel === "Web"
+                                ? "bg-indigo-500/10 text-indigo-300 border border-indigo-500/30"
+                                : "bg-slate-800/60 text-slate-200 border border-slate-700";
+                            return (
+                              <span className={`${baseClasses} ${colorClasses}`}>
+                                {originLabel}
+                              </span>
+                            );
+                          })()}
+                        </td>
+                        <td className="px-4 py-3 align-middle text-right font-semibold text-[#22CC88]">
+                          {invoice.amount}
+                        </td>
+                        <td className="px-4 py-3 align-middle">
+                          <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ${statusInfo.bg} ${statusInfo.color} border ${statusInfo.border}`}>
+                            <span>{statusInfo.icon}</span>
+                            {statusInfo.label}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </Fragment>
               ))}
             </tbody>
