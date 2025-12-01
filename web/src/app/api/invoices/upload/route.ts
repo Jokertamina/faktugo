@@ -194,6 +194,9 @@ export async function POST(request: Request) {
     const supplierNorm = normalize(supplier);
     const amountNorm = amount.replace(/\s+/g, ""); // "18.15 EUR" -> "18.15EUR"
 
+    console.log(`[Duplicados] Buscando para: fecha=${invoiceDate}, proveedor="${supplier}" (norm="${supplierNorm}"), importe="${amount}"`);
+    console.log(`[Duplicados] Candidatos encontrados: ${candidateDuplicates?.length || 0}`);
+
     // Buscar duplicados comparando de forma flexible
     const possibleDuplicates = (candidateDuplicates || []).filter((inv) => {
       const invSupplierNorm = normalize(inv.supplier || "");
@@ -210,8 +213,12 @@ export async function POST(request: Request) {
         totalAmountNum === 0 || // Si no hay importe detectado, ignorar
         invAmountNorm === amountNorm;
 
+      console.log(`[Duplicados] Comparando con: "${inv.supplier}" (norm="${invSupplierNorm}"), "${inv.amount}" -> supplierMatch=${supplierMatch}, amountMatch=${amountMatch}`);
+
       return supplierMatch && amountMatch;
     });
+
+    console.log(`[Duplicados] Posibles duplicados: ${possibleDuplicates.length}`);
 
     if (possibleDuplicates.length > 0) {
       // Si hay número de factura, verificar si coincide exactamente
