@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseServerClient, getSupabaseClientWithToken, verifyAccessToken } from "@/lib/supabaseServer";
 import { canUseEmailIngestion } from "@/lib/subscription";
 import { headers } from "next/headers";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 async function getAuthenticatedSupabaseAndUser() {
   const headersList = await headers();
@@ -26,9 +27,9 @@ async function getAuthenticatedSupabaseAndUser() {
   return { supabase, user };
 }
 
-async function getOrCreateEmailAlias(userId: string, supabaseClient?: any) {
+async function getOrCreateEmailAlias(userId: string, supabaseClient?: SupabaseClient) {
   // Usar el cliente proporcionado o crear uno nuevo (para operaciones de service role)
-  const supabase = supabaseClient || await getSupabaseServerClient();
+  const supabase: SupabaseClient = supabaseClient || await getSupabaseServerClient();
 
   const { data: existing, error: existingError } = await supabase
     .from("email_ingestion_aliases")
