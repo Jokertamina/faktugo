@@ -9,6 +9,7 @@ const appNavItems = [
   { href: "/dashboard", label: "Dashboard", icon: "📊" },
   { href: "/invoices", label: "Facturas", icon: "📄" },
   { href: "/invoices/upload", label: "Subir", icon: "📤" },
+  { href: "/", label: "Inicio", icon: "🏠" },
 ];
 
 const landingNavItems = [
@@ -108,7 +109,7 @@ export default function Header() {
     <header className="sticky top-0 z-50 border-b border-slate-800 bg-[#050816]/95 backdrop-blur-sm">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
         {/* Logo */}
-        <Link href="/dashboard" className="flex items-center gap-2">
+        <Link href="/" className="flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#2A5FFF]">
             <span className="text-sm font-bold text-white">FG</span>
           </div>
@@ -118,8 +119,9 @@ export default function Header() {
         {/* Desktop Nav */}
         <nav className="hidden items-center gap-1 md:flex">
           {navItems.map((item) => {
-            const isActive = pathname === item.href || 
-              (item.href !== "/dashboard" && pathname?.startsWith(item.href));
+            const isActive =
+              pathname === item.href ||
+              (item.href !== "/dashboard" && item.href !== "/" && pathname?.startsWith(item.href));
             return (
               <Link
                 key={item.href}
