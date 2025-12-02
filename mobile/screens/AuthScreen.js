@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, ActivityIndicator } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, ScrollView, KeyboardAvoidingView, Platform } from "react-native";
 import { styles } from "../styles";
 import { getSupabaseClient } from "../supabaseClient";
 
@@ -8,6 +8,9 @@ export default function AuthScreen() {
   const [password, setPassword] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [userType, setUserType] = useState("autonomo"); // "autonomo" | "empresa"
+  const [companyName, setCompanyName] = useState("");
+  const [country, setCountry] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [info, setInfo] = useState(null);
@@ -68,6 +71,12 @@ export default function AuthScreen() {
       return;
     }
 
+    const trimmedCompany = companyName.trim();
+    if (userType === "empresa" && !trimmedCompany) {
+      setError("El nombre de la empresa es obligatorio.");
+      return;
+    }
+
     setLoading(true);
     setError(null);
     setInfo(null);
@@ -81,6 +90,9 @@ export default function AuthScreen() {
             full_name: fullName,
             first_name: trimmedFirst,
             last_name: trimmedLast,
+            type: userType,
+            company_name: trimmedCompany || null,
+            country: country.trim() || null,
           },
         },
       });
@@ -113,7 +125,15 @@ export default function AuthScreen() {
     : "Crea tu cuenta para empezar a subir facturas desde el movil y la web.";
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView 
+      style={{ flex: 1 }} 
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    >
+      <ScrollView 
+        style={styles.container}
+        contentContainerStyle={{ paddingBottom: 40 }}
+        keyboardShouldPersistTaps="handled"
+      >
       <View style={styles.header}>
         <View style={styles.logoCircle}>
           <Text style={styles.logoText}>FG</Text>
@@ -170,6 +190,88 @@ export default function AuthScreen() {
                   color: "#F9FAFB",
                   fontSize: 13,
                   marginBottom: 8,
+                }}
+              />
+            </View>
+
+            <View>
+              <Text style={{ color: "#E5E7EB", fontSize: 12, marginBottom: 4 }}>Tipo de cuenta</Text>
+              <View style={{ flexDirection: "row", gap: 10 }}>
+                <TouchableOpacity
+                  onPress={() => setUserType("autonomo")}
+                  style={{
+                    flex: 1,
+                    backgroundColor: userType === "autonomo" ? "#1E3A5F" : "#020617",
+                    borderRadius: 10,
+                    borderWidth: 1,
+                    borderColor: userType === "autonomo" ? "#3B82F6" : "#1F2937",
+                    paddingVertical: 10,
+                    alignItems: "center",
+                  }}
+                >
+                  <Text style={{ color: userType === "autonomo" ? "#93C5FD" : "#9CA3AF", fontSize: 13 }}>
+                    Autónomo
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => setUserType("empresa")}
+                  style={{
+                    flex: 1,
+                    backgroundColor: userType === "empresa" ? "#1E3A5F" : "#020617",
+                    borderRadius: 10,
+                    borderWidth: 1,
+                    borderColor: userType === "empresa" ? "#3B82F6" : "#1F2937",
+                    paddingVertical: 10,
+                    alignItems: "center",
+                  }}
+                >
+                  <Text style={{ color: userType === "empresa" ? "#93C5FD" : "#9CA3AF", fontSize: 13 }}>
+                    Empresa
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View>
+              <Text style={{ color: "#E5E7EB", fontSize: 12, marginBottom: 4 }}>
+                {userType === "empresa" ? "Nombre de la empresa" : "Nombre comercial (opcional)"}
+              </Text>
+              <TextInput
+                value={companyName}
+                onChangeText={setCompanyName}
+                placeholder={userType === "empresa" ? "Mi Empresa S.L." : "Opcional"}
+                placeholderTextColor="#6B7280"
+                autoCapitalize="words"
+                style={{
+                  backgroundColor: "#020617",
+                  borderRadius: 999,
+                  borderWidth: 1,
+                  borderColor: "#1F2937",
+                  paddingHorizontal: 14,
+                  paddingVertical: 10,
+                  color: "#F9FAFB",
+                  fontSize: 13,
+                }}
+              />
+            </View>
+
+            <View>
+              <Text style={{ color: "#E5E7EB", fontSize: 12, marginBottom: 4 }}>País (opcional)</Text>
+              <TextInput
+                value={country}
+                onChangeText={setCountry}
+                placeholder="España"
+                placeholderTextColor="#6B7280"
+                autoCapitalize="words"
+                style={{
+                  backgroundColor: "#020617",
+                  borderRadius: 999,
+                  borderWidth: 1,
+                  borderColor: "#1F2937",
+                  paddingHorizontal: 14,
+                  paddingVertical: 10,
+                  color: "#F9FAFB",
+                  fontSize: 13,
                 }}
               />
             </View>
@@ -273,6 +375,7 @@ export default function AuthScreen() {
           </Text>
         </TouchableOpacity>
       </View>
-    </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }

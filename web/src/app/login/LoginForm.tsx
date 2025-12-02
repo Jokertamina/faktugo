@@ -61,6 +61,9 @@ export default function LoginForm() {
   const [password, setPassword] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [userType, setUserType] = useState<"autonomo" | "empresa">("autonomo");
+  const [companyName, setCompanyName] = useState("");
+  const [country, setCountry] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -83,6 +86,13 @@ export default function LoginForm() {
           return;
         }
 
+        const trimmedCompany = companyName.trim();
+        if (userType === "empresa" && !trimmedCompany) {
+          setError("El nombre de la empresa es obligatorio.");
+          setLoading(false);
+          return;
+        }
+
         const { error } = await supabase.auth.signUp({
           email,
           password,
@@ -91,6 +101,9 @@ export default function LoginForm() {
               full_name: fullName,
               first_name: trimmedFirst,
               last_name: trimmedLast,
+              type: userType,
+              company_name: trimmedCompany || null,
+              country: country.trim() || null,
             },
           },
         });
@@ -161,6 +174,58 @@ export default function LoginForm() {
               required
               value={lastName}
               onChange={(e) => setLastName(e.target.value)}
+              className="w-full rounded-lg border border-slate-800 bg-[#020617] px-3 py-2 text-sm text-slate-50 outline-none ring-0 focus:border-slate-500"
+            />
+          </div>
+          <div className="space-y-1 text-sm">
+            <label className="block text-slate-300">Tipo de cuenta</label>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setUserType("autonomo")}
+                className={`flex-1 rounded-lg border px-3 py-2 text-sm transition ${
+                  userType === "autonomo"
+                    ? "border-blue-500 bg-blue-500/20 text-blue-300"
+                    : "border-slate-700 bg-slate-800/50 text-slate-400 hover:border-slate-600"
+                }`}
+              >
+                Autónomo
+              </button>
+              <button
+                type="button"
+                onClick={() => setUserType("empresa")}
+                className={`flex-1 rounded-lg border px-3 py-2 text-sm transition ${
+                  userType === "empresa"
+                    ? "border-blue-500 bg-blue-500/20 text-blue-300"
+                    : "border-slate-700 bg-slate-800/50 text-slate-400 hover:border-slate-600"
+                }`}
+              >
+                Empresa
+              </button>
+            </div>
+          </div>
+          <div className="space-y-1 text-sm">
+            <label className="block text-slate-300" htmlFor="companyName">
+              {userType === "empresa" ? "Nombre de la empresa" : "Nombre comercial (opcional)"}
+            </label>
+            <input
+              id="companyName"
+              type="text"
+              value={companyName}
+              onChange={(e) => setCompanyName(e.target.value)}
+              className="w-full rounded-lg border border-slate-800 bg-[#020617] px-3 py-2 text-sm text-slate-50 outline-none ring-0 focus:border-slate-500"
+            />
+          </div>
+          <div className="space-y-1 text-sm">
+            <label className="block text-slate-300" htmlFor="country">
+              País (opcional)
+            </label>
+            <input
+              id="country"
+              type="text"
+              value={country}
+              onChange={(e) => setCountry(e.target.value)}
+              placeholder="España"
               className="w-full rounded-lg border border-slate-800 bg-[#020617] px-3 py-2 text-sm text-slate-50 outline-none ring-0 focus:border-slate-500"
             />
           </div>

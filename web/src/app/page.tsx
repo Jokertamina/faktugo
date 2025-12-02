@@ -214,7 +214,7 @@ export default async function Home() {
               </p>
             </article>
             <article className="rounded-2xl border border-slate-800 bg-[#0B1220] p-4">
-              <h3 className="text-sm font-semibold text-slate-50">Pymes</h3>
+              <h3 className="text-sm font-semibold text-slate-50">Empresas</h3>
               <p className="mt-2 text-sm text-slate-300">
                 Centraliza la documentación de tu negocio y gana visibilidad sobre el gasto
                 mensual.

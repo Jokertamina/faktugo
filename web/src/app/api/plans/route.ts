@@ -8,32 +8,28 @@ export async function GET() {
     const supabase = await getSupabaseServerClient();
     const plans = await getPlans(supabase);
 
-    // Filtrar solo planes activos y de pago (excluir free)
-    const paidPlans = Object.values(plans)
-      .filter((p) => p.isActive && p.id !== "free")
+    // Todos los planes activos
+    const allPlans = Object.values(plans)
+      .filter((p) => p.isActive)
       .sort((a, b) => a.sortOrder - b.sortOrder)
       .map((p) => ({
         id: p.id,
         name: p.displayName,
         description: p.description,
-        price: (p.priceMonthly / 100).toFixed(2).replace(".", ","),
-        features: p.features,
-        stripePriceId: p.stripePriceId,
+        price_monthly: p.priceMonthly / 100, // En euros
+        stripe_price_id: p.stripePriceId,
+        limits: {
+          invoices_per_month: p.invoicesPerMonth,
+          can_send_to_gestoria: p.canSendToGestoria,
+          email_ingestion: p.canUseEmailIngestion,
+        },
+        features: {
+          priority_support: p.features?.includes("Soporte prioritario") || false,
+        },
+        features_list: p.features,
       }));
 
-    // Plan gratuito
-    const freePlan = plans["free"];
-    const free = freePlan
-      ? {
-          id: "free",
-          name: freePlan.displayName,
-          description: freePlan.description,
-          invoicesPerMonth: freePlan.invoicesPerMonth,
-          features: freePlan.features,
-        }
-      : null;
-
-    return NextResponse.json({ plans: paidPlans, free });
+    return NextResponse.json({ plans: allPlans });
   } catch (error: any) {
     console.error("Error obteniendo planes:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });

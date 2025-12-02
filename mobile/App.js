@@ -16,6 +16,7 @@ import InvoiceDetailScreen from "./screens/InvoiceDetailScreen";
 import AuthScreen from "./screens/AuthScreen";
 import ConnectionsScreen from "./screens/ConnectionsScreen";
 import AccountScreen from "./screens/AccountScreen";
+import PlansScreen from "./screens/PlansScreen";
 import { getSupabaseClient } from "./supabaseClient";
 
 const INITIAL_INVOICES_RAW = [
@@ -294,6 +295,7 @@ export default function App() {
                 />
               )}
             </RootStack.Screen>
+            <RootStack.Screen name="Plans" component={PlansScreen} />
           </RootStack.Navigator>
         )}
       </SafeAreaView>

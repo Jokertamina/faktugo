@@ -72,7 +72,7 @@ export default function Footer() {
             © {new Date().getFullYear()} FaktuGo. Todos los derechos reservados.
           </p>
           <p className="text-xs text-slate-500">
-            Hecho con ❤️ para autónomos y pymes
+            Hecho con ❤️ para autónomos y empresas
           </p>
         </div>
       </div>

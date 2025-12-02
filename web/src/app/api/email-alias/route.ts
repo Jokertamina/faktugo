@@ -78,8 +78,8 @@ async function getOrCreateEmailAlias(userId: string) {
   const last = (profile?.last_name ?? "").trim();
 
   let baseName = "";
-  if (type === "pyme" || type === "gestoria") {
-    // Empresas y gestorías: priorizamos el nombre de la empresa.
+  if (type === "empresa") {
+    // Empresas: priorizamos el nombre de la empresa.
     baseName = company || `${first} ${last}`.trim();
   } else {
     // Autónomos: usamos nombre comercial si existe, si no nombre completo.

@@ -40,7 +40,7 @@ const DEFAULT_PLANS: Record<string, PlanConfig> = {
   basico: {
     id: "basico",
     displayName: "Básico",
-    description: "Para autónomos con volumen moderado",
+    description: "Para negocios con volumen moderado",
     invoicesPerMonth: 50,
     canSendToGestoria: true,
     canUseEmailIngestion: true,

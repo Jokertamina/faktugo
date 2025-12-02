@@ -6,6 +6,7 @@ import ProfileForm, { type ProfileData } from "./ProfileForm";
 import EmailAliasCard from "./EmailAliasCard";
 import SubscriptionCard from "./SubscriptionCard";
 import SupportButton from "./SupportButton";
+import AccountSettings from "./AccountSettings";
 
 const MONTH_NAMES = [
 	"Enero",
@@ -80,9 +81,19 @@ export default async function DashboardPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("display_name,first_name,last_name,type,company_name,country,gestoria_email")
+    .select("display_name,first_name,last_name,type,company_name,country")
     .eq("id", user.id)
     .maybeSingle<ProfileData>();
+
+  // Verificar si tiene suscripción activa
+  const { data: activeSubscription } = await supabase
+    .from("subscriptions")
+    .select("id")
+    .eq("user_id", user.id)
+    .eq("status", "active")
+    .maybeSingle();
+
+  const hasActiveSubscription = !!activeSubscription;
 
   return (
     <div className="min-h-screen bg-[#050816] text-slate-50">
@@ -255,6 +266,8 @@ export default async function DashboardPage() {
             <div className="flex justify-center">
               <SupportButton />
             </div>
+
+            <AccountSettings hasActiveSubscription={hasActiveSubscription} />
           </div>
         </section>
       </main>

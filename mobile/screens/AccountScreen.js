@@ -2,10 +2,12 @@ import React, { useEffect, useState } from "react";
 import { View, Text, ScrollView, TextInput, TouchableOpacity, ActivityIndicator, Alert } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
 import { styles } from "../styles";
 import { getSupabaseClient } from "../supabaseClient";
 
 export default function AccountScreen() {
+  const navigation = useNavigation();
   const [email, setEmail] = useState(null);
   const [userId, setUserId] = useState(null);
   const [loadingUser, setLoadingUser] = useState(true);
@@ -531,6 +533,29 @@ export default function AccountScreen() {
             </TouchableOpacity>
           </View>
 
+        {/* Planes y suscripción */}
+        <View style={{ marginTop: 12 }}>
+          <TouchableOpacity
+            onPress={() => navigation.navigate("Plans")}
+            style={{
+              backgroundColor: "#1E3A5F",
+              borderRadius: 16,
+              padding: 16,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 10,
+              borderWidth: 1,
+              borderColor: "#3B82F6",
+            }}
+          >
+            <Ionicons name="card-outline" size={18} color="#93C5FD" />
+            <Text style={{ color: "#93C5FD", fontSize: 14, fontWeight: "500" }}>
+              Ver planes y suscripción
+            </Text>
+          </TouchableOpacity>
+        </View>
+
         {/* Cerrar sesión */}
         <View style={{ marginTop: 12 }}>
           <TouchableOpacity
@@ -559,6 +584,41 @@ export default function AccountScreen() {
           </TouchableOpacity>
           <Text style={{ color: "#6B7280", fontSize: 11, textAlign: "center", marginTop: 8 }}>
             Solo cierra sesión en este dispositivo
+          </Text>
+        </View>
+
+        {/* Eliminar cuenta */}
+        <View style={{ marginTop: 24 }}>
+          <Text style={{ color: "#EF4444", fontSize: 12, fontWeight: "600", marginBottom: 8 }}>
+            Zona de peligro
+          </Text>
+          <TouchableOpacity
+            onPress={() => {
+              Alert.alert(
+                "Eliminar cuenta",
+                "Para eliminar tu cuenta, accede desde la web en faktugo.com/dashboard. Debes cancelar tu suscripción primero si tienes una activa.",
+                [{ text: "Entendido", style: "default" }]
+              );
+            }}
+            style={{
+              backgroundColor: "rgba(239, 68, 68, 0.1)",
+              borderRadius: 16,
+              padding: 16,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 10,
+              borderWidth: 1,
+              borderColor: "rgba(239, 68, 68, 0.3)",
+            }}
+          >
+            <Ionicons name="trash-outline" size={18} color="#FCA5A5" />
+            <Text style={{ color: "#FCA5A5", fontSize: 14, fontWeight: "500" }}>
+              Eliminar cuenta
+            </Text>
+          </TouchableOpacity>
+          <Text style={{ color: "#6B7280", fontSize: 11, textAlign: "center", marginTop: 8 }}>
+            Esta acción es irreversible
           </Text>
         </View>
         </ScrollView>

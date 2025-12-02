@@ -6,8 +6,7 @@ import { getSupabaseBrowserClient } from "@/lib/supabaseBrowser";
 
 const TYPE_OPTIONS = [
   { value: "autonomo", label: "Autónomo" },
-  { value: "pyme", label: "Pyme" },
-  { value: "gestoria", label: "Gestoría" },
+  { value: "empresa", label: "Empresa" },
 ];
 
 export type ProfileData = {
@@ -17,7 +16,6 @@ export type ProfileData = {
   type: string;
   company_name: string | null;
   country: string | null;
-  gestoria_email?: string | null;
 };
 
 interface ProfileFormProps {
@@ -33,7 +31,6 @@ export default function ProfileForm({ userId, email, profile }: ProfileFormProps
   const [type, setType] = useState<string>(profile?.type ?? "autonomo");
   const [companyName, setCompanyName] = useState(profile?.company_name ?? "");
   const [country, setCountry] = useState(profile?.country ?? "");
-  const [gestoriaEmail, setGestoriaEmail] = useState(profile?.gestoria_email ?? "");
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -50,7 +47,7 @@ export default function ProfileForm({ userId, email, profile }: ProfileFormProps
       const trimmedLast = lastName.trim();
       const trimmedCompany = companyName.trim();
       const fullName = `${trimmedFirst} ${trimmedLast}`.trim();
-      const isBusiness = type === "pyme" || type === "gestoria";
+      const isBusiness = type === "empresa";
 
       if (!trimmedFirst || !trimmedLast) {
         setError("Nombre y apellidos son obligatorios.");
@@ -59,7 +56,7 @@ export default function ProfileForm({ userId, email, profile }: ProfileFormProps
       }
 
       if (isBusiness && !trimmedCompany) {
-        setError("Para empresas o gestorias, el nombre de la empresa es obligatorio.");
+        setError("Para empresas, el nombre de la empresa es obligatorio.");
         setSaving(false);
         return;
       }
@@ -75,7 +72,6 @@ export default function ProfileForm({ userId, email, profile }: ProfileFormProps
             type,
             company_name: trimmedCompany || null,
             country: country.trim() || null,
-            gestoria_email: gestoriaEmail.trim() || null,
           },
           { onConflict: "id" }
         );
@@ -139,7 +135,7 @@ export default function ProfileForm({ userId, email, profile }: ProfileFormProps
 
       <div>
         <label className="block text-slate-300" htmlFor="companyName">
-          {type === "pyme" || type === "gestoria"
+  {type === "empresa"
             ? "Nombre de la empresa"
             : "Nombre comercial (opcional)"}
         </label>
@@ -161,20 +157,6 @@ export default function ProfileForm({ userId, email, profile }: ProfileFormProps
           type="text"
           value={country}
           onChange={(e) => setCountry(e.target.value)}
-          className="mt-1 w-full rounded-lg border border-slate-800 bg-[#020617] px-3 py-2 text-xs text-slate-50 outline-none ring-0 focus:border-slate-500"
-        />
-      </div>
-
-      <div>
-        <label className="block text-slate-300" htmlFor="gestoriaEmail">
-          Email de la gestoría (opcional)
-        </label>
-        <input
-          id="gestoriaEmail"
-          type="email"
-          value={gestoriaEmail}
-          onChange={(e) => setGestoriaEmail(e.target.value)}
-          placeholder="gestoria@ejemplo.com"
           className="mt-1 w-full rounded-lg border border-slate-800 bg-[#020617] px-3 py-2 text-xs text-slate-50 outline-none ring-0 focus:border-slate-500"
         />
       </div>
