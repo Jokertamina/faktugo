@@ -26,8 +26,9 @@ async function getAuthenticatedSupabaseAndUser() {
   return { supabase, user };
 }
 
-async function getOrCreateEmailAlias(userId: string) {
-  const supabase = await getSupabaseServerClient();
+async function getOrCreateEmailAlias(userId: string, supabaseClient?: any) {
+  // Usar el cliente proporcionado o crear uno nuevo (para operaciones de service role)
+  const supabase = supabaseClient || await getSupabaseServerClient();
 
   const { data: existing, error: existingError } = await supabase
     .from("email_ingestion_aliases")
@@ -186,7 +187,7 @@ export async function GET() {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
     }
 
-    const alias = await getOrCreateEmailAlias(user.id);
+    const alias = await getOrCreateEmailAlias(user.id, supabase);
 
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
@@ -252,7 +253,7 @@ export async function PATCH(request: Request) {
       );
     }
 
-    const alias = await getOrCreateEmailAlias(user.id);
+    const alias = await getOrCreateEmailAlias(user.id, supabase);
 
     const { error: updateError } = await supabase
       .from("profiles")
