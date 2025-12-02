@@ -151,7 +151,7 @@ export async function POST(request: Request) {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      path: "/admin",
+      path: "/",
       expires: expiresAt,
     });
 
@@ -177,7 +177,13 @@ export async function DELETE() {
     }
 
     const response = NextResponse.json({ success: true });
-    response.cookies.delete(COOKIE_NAME);
+    response.cookies.set(COOKIE_NAME, "", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 0,
+    });
 
     return response;
   } catch (error: any) {
