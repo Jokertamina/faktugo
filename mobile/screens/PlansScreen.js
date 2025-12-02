@@ -30,7 +30,8 @@ export default function PlansScreen() {
       const plansRes = await fetch(`${API_BASE_URL}/api/plans`);
       if (plansRes.ok) {
         const plansData = await plansRes.json();
-        setPlans(plansData.plans || []);
+        // Usar allPlans que incluye el plan free
+        setPlans(plansData.allPlans || plansData.plans || []);
       }
 
       // Cargar suscripción actual del usuario
@@ -232,24 +233,11 @@ export default function PlansScreen() {
             </View>
 
             <View style={{ marginTop: 16 }}>
-              <Text style={{ color: "#6EE7B7", fontSize: 12 }}>
-                ✓ {plan.limits?.invoices_per_month === -1 ? "Facturas ilimitadas" : `${plan.limits?.invoices_per_month || 5} facturas/mes`}
-              </Text>
-              {plan.limits?.can_send_to_gestoria && (
-                <Text style={{ color: "#6EE7B7", fontSize: 12, marginTop: 4 }}>
-                  ✓ Envío a gestoría
+              {(plan.features || []).map((feature, index) => (
+                <Text key={index} style={{ color: "#6EE7B7", fontSize: 12, marginTop: index > 0 ? 4 : 0 }}>
+                  ✓ {feature}
                 </Text>
-              )}
-              {plan.limits?.email_ingestion && (
-                <Text style={{ color: "#6EE7B7", fontSize: 12, marginTop: 4 }}>
-                  ✓ Ingesta por email
-                </Text>
-              )}
-              {plan.features?.priority_support && (
-                <Text style={{ color: "#6EE7B7", fontSize: 12, marginTop: 4 }}>
-                  ✓ Soporte prioritario
-                </Text>
-              )}
+              ))}
             </View>
 
             {!isCurrentPlan && plan.price_monthly > 0 && (
