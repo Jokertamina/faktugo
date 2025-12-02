@@ -181,4 +181,3 @@ export default function AdminAuthGate({ children }: { children: React.ReactNode 
     </div>
   );
 }
-
