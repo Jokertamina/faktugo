@@ -13,12 +13,16 @@ export async function GET(request: Request) {
     // Si no hay cookie, intentar con Bearer token (móvil)
     if (!user) {
       const authHeader = request.headers.get("Authorization");
+      console.log("[/api/stripe/usage] No cookie user. authHeader:", authHeader ? "present" : "missing");
 
       if (authHeader?.startsWith("Bearer ")) {
         const token = authHeader.substring(7);
+        console.log("[/api/stripe/usage] Token length:", token.length, "starts with:", token.substring(0, 20));
         
         // Usar service role para verificar el token de forma fiable
         const { user: verifiedUser, error: verifyError } = await verifyAccessToken(token);
+        
+        console.log("[/api/stripe/usage] verifyAccessToken result:", verifiedUser?.id || "null", "error:", verifyError || "none");
         
         if (verifyError) {
           console.warn("[/api/stripe/usage] Token inválido:", verifyError);
@@ -28,10 +32,13 @@ export async function GET(request: Request) {
           user = verifiedUser;
           supabase = getSupabaseClientWithToken(token);
         }
+      } else {
+        console.log("[/api/stripe/usage] No Bearer token in header");
       }
     }
 
     if (!user) {
+      console.log("[/api/stripe/usage] Final: No user, returning 401");
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
     }
 
