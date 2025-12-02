@@ -116,7 +116,7 @@ export default function AccountScreen() {
     const trimmedLast = lastName.trim();
     const trimmedCompany = companyName.trim();
     const fullName = `${trimmedFirst} ${trimmedLast}`.trim();
-    const isBusiness = clientType === "pyme" || clientType === "gestoria";
+    const isBusiness = clientType === "empresa";
 
     if (!trimmedFirst || !trimmedLast) {
       Alert.alert("Nombre y apellidos", "Introduce nombre y apellidos para guardar la cuenta.");
@@ -126,7 +126,7 @@ export default function AccountScreen() {
     if (isBusiness && !trimmedCompany) {
       Alert.alert(
         "Nombre de la empresa",
-        "Para empresas o gestorias, indica el nombre de la empresa para guardar la cuenta."
+        "Para empresas, indica el nombre de la empresa para guardar la cuenta."
       );
       return;
     }
@@ -322,8 +322,7 @@ export default function AccountScreen() {
             >
               {[
                 { value: "autonomo", label: "Autónomo" },
-                { value: "pyme", label: "Pyme" },
-                { value: "gestoria", label: "Gestoría" },
+                { value: "empresa", label: "Empresa" },
               ].map((opt) => {
                 const active = clientType === opt.value;
                 return (
@@ -354,7 +353,7 @@ export default function AccountScreen() {
             </View>
 
             <Text style={{ color: "#E5E7EB", fontSize: 13, marginTop: 8 }}>
-              {clientType === "pyme" || clientType === "gestoria"
+              {clientType === "empresa"
                 ? "Nombre de la empresa"
                 : "Nombre comercial (opcional)"}
             </Text>
@@ -399,8 +398,8 @@ export default function AccountScreen() {
               }}
             />
 
-            <Text style={{ color: "#E5E7EB", fontSize: 13, marginTop: 8 }}>
-              Email de la gestoria (opcional)
+            <Text style={{ color: "#E5E7EB", fontSize: 13, marginTop: 16 }}>
+              Email de tu gestoría (opcional)
             </Text>
             <TextInput
               value={gestoriaEmail}
@@ -422,9 +421,8 @@ export default function AccountScreen() {
                 marginTop: 4,
               }}
             />
-
             <Text style={{ color: "#9CA3AF", fontSize: 11, marginTop: 4 }}>
-              Usaremos estos datos para personalizar el envio de facturas a tu gestoria.
+              Usaremos este email para enviar tus facturas a tu gestor/asesor fiscal.
             </Text>
 
             <View

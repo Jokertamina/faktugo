@@ -15,17 +15,31 @@ export async function POST(request: Request) {
     // Si no hay cookie, intentar con Bearer token (para móvil)
     if (!user) {
       const authHeader = request.headers.get("Authorization");
+      console.log("Auth header:", authHeader ? "presente" : "ausente");
+      
       if (authHeader?.startsWith("Bearer ")) {
         const token = authHeader.substring(7);
+        console.log("Token length:", token.length);
+        
+        // Usar el service client para verificar el token JWT
         const serviceClient = getSupabaseServiceClient();
-        const { data: tokenAuth } = await serviceClient.auth.getUser(token);
+        const { data: tokenAuth, error: tokenError } = await serviceClient.auth.getUser(token);
+        
+        console.log("Token auth result:", tokenAuth?.user?.id || "no user");
+        if (tokenError) {
+          console.error("Token error:", tokenError.message);
+        }
+        
         user = tokenAuth?.user;
       }
     }
 
     if (!user) {
+      console.log("No user found after all auth attempts");
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
     }
+    
+    console.log("User authenticated:", user.id);
 
     const body = await request.json();
     const { plan, priceId: directPriceId } = body;
@@ -104,6 +118,12 @@ export async function POST(request: Request) {
           quantity: 1,
         },
       ],
+      // Recoger dirección de facturación completa
+      billing_address_collection: "required",
+      // Recoger NIF/CIF para facturas válidas
+      tax_id_collection: {
+        enabled: true,
+      },
       success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?subscription=success`,
       cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/pricing?subscription=cancelled`,
       metadata: {
