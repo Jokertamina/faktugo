@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseServiceClient } from "@/lib/supabaseServer";
 import { computePeriodFromDate } from "@/lib/invoices";
 import { analyzeInvoiceFile, isValidInvoice, getRejectionReason } from "@/lib/invoiceAI";
+import { canUploadInvoice, canUseEmailIngestion, canSendToGestoria } from "@/lib/subscription";
 
 type ResendAttachmentMeta = {
   id: string;
@@ -219,9 +220,54 @@ export async function POST(request: Request) {
       const lastName = (profile?.last_name ?? "").trim();
       const combinedName = `${firstName} ${lastName}`.trim();
       const clientDisplayName = combinedName || (profile?.display_name ?? "Tu cliente");
-      const shouldAutoSend = autoSendIngested && !!gestoriaEmail && !!fromEmail;
 
-      for (const att of data.attachments ?? []) {
+      // =====================================================
+      // VERIFICAR SUSCRIPCIÓN: ¿Puede usar ingesta por email?
+      // =====================================================
+      const emailIngestionCheck = await canUseEmailIngestion(supabase, userId);
+      if (!emailIngestionCheck.allowed) {
+        console.log(`[Email Ingest] Usuario ${userId} no puede usar ingesta por email: ${emailIngestionCheck.reason}`);
+        for (const att of data.attachments ?? []) {
+          results.push({
+            userId,
+            attachmentId: att.id,
+            error: "La ingesta por email no está disponible en tu plan. Actualiza a Básico o Pro.",
+          });
+        }
+        continue; // Saltar a siguiente alias
+      }
+
+      // =====================================================
+      // VERIFICAR SUSCRIPCIÓN: ¿Tiene facturas disponibles?
+      // =====================================================
+      const uploadCheck = await canUploadInvoice(supabase, userId);
+      if (!uploadCheck.allowed) {
+        console.log(`[Email Ingest] Usuario ${userId} ha alcanzado el límite: ${uploadCheck.reason}`);
+        for (const att of data.attachments ?? []) {
+          results.push({
+            userId,
+            attachmentId: att.id,
+            error: uploadCheck.reason || "Has alcanzado el límite de facturas de tu plan.",
+          });
+        }
+        continue; // Saltar a siguiente alias
+      }
+
+      // Verificar que no intente procesar más adjuntos de los que le quedan
+      let attachmentsToProcess = [...(data.attachments ?? [])];
+      const remaining = uploadCheck.remaining ?? 0;
+      if (remaining !== Infinity && attachmentsToProcess.length > remaining) {
+        console.log(`[Email Ingest] Usuario ${userId} intenta ingerir ${attachmentsToProcess.length} pero solo le quedan ${remaining}`);
+        // Procesar solo los que le quedan
+        attachmentsToProcess = attachmentsToProcess.slice(0, remaining);
+      }
+
+      // Verificar si puede enviar a gestoría (para autoenvío)
+      const gestoriaCheck = await canSendToGestoria(supabase, userId);
+      const canSendGestoria = gestoriaCheck.allowed;
+      const shouldAutoSend = autoSendIngested && !!gestoriaEmail && !!fromEmail && canSendGestoria;
+
+      for (const att of attachmentsToProcess) {
         try {
           const full = attachmentsById.get(att.id);
           if (!full) {
