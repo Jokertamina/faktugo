@@ -6,9 +6,9 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 export async function POST(request: Request) {
   try {
-    // Leer body una vez para obtener plan / priceId / accessToken (móvil)
+    // Leer body una vez para obtener plan / priceId / accessToken / returnUrl (móvil)
     const body = await request.json();
-    const { plan, priceId: directPriceId, accessToken } = body;
+    const { plan, priceId: directPriceId, accessToken, returnUrl } = body;
 
     // Intentar autenticación por cookie primero (web)
     let user = null;
@@ -128,6 +128,18 @@ export async function POST(request: Request) {
         .eq("id", user.id);
     }
 
+    const hasMobileReturn = typeof returnUrl === "string" && returnUrl.length > 0;
+
+    const successUrl = hasMobileReturn
+      ? `${returnUrl}?status=success`
+      : `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?subscription=success`;
+
+    const cancelUrl = hasMobileReturn
+      ? `${returnUrl}?status=cancelled`
+      : `${process.env.NEXT_PUBLIC_APP_URL}/pricing?subscription=cancelled`;
+
+    const origin = hasMobileReturn || accessToken ? "mobile" : "web";
+
     // Crear Checkout Session
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
@@ -150,16 +162,18 @@ export async function POST(request: Request) {
       tax_id_collection: {
         enabled: true,
       },
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?subscription=success`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/pricing?subscription=cancelled`,
+      success_url: successUrl,
+      cancel_url: cancelUrl,
       metadata: {
         user_id: user.id,
         plan: planId,
+        origin,
       },
       subscription_data: {
         metadata: {
           user_id: user.id,
           plan: planId,
+          origin,
         },
       },
     });

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { StatusBar } from "expo-status-bar";
+import * as WebBrowser from "expo-web-browser";
 import { NavigationContainer, useNavigationContainerRef } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
@@ -7,6 +8,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { View, Text, BackHandler, Platform, ToastAndroid } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { fetchInvoicesFromSupabase } from "./api";
+import { getSupabaseClient } from "./supabaseClient";
 import { styles } from "./styles";
 import { buildInvoices } from "./domain/invoice";
 import { loadInvoicesFromStorage, saveInvoicesToStorage } from "./storage/localInvoices";
@@ -17,7 +19,8 @@ import AuthScreen from "./screens/AuthScreen";
 import ConnectionsScreen from "./screens/ConnectionsScreen";
 import AccountScreen from "./screens/AccountScreen";
 import PlansScreen from "./screens/PlansScreen";
-import { getSupabaseClient } from "./supabaseClient";
+
+WebBrowser.maybeCompleteAuthSession();
 
 const INITIAL_INVOICES_RAW = [
   {

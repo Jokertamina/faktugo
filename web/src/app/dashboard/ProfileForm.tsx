@@ -16,6 +16,7 @@ export type ProfileData = {
   type: string;
   company_name: string | null;
   country: string | null;
+  gestoria_email?: string | null;
 };
 
 interface ProfileFormProps {
@@ -31,6 +32,7 @@ export default function ProfileForm({ userId, email, profile }: ProfileFormProps
   const [type, setType] = useState<string>(profile?.type ?? "autonomo");
   const [companyName, setCompanyName] = useState(profile?.company_name ?? "");
   const [country, setCountry] = useState(profile?.country ?? "");
+  const [gestoriaEmail, setGestoriaEmail] = useState(profile?.gestoria_email ?? "");
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -46,6 +48,7 @@ export default function ProfileForm({ userId, email, profile }: ProfileFormProps
       const trimmedFirst = firstName.trim();
       const trimmedLast = lastName.trim();
       const trimmedCompany = companyName.trim();
+      const trimmedGestoriaEmail = gestoriaEmail.trim();
       const fullName = `${trimmedFirst} ${trimmedLast}`.trim();
       const isBusiness = type === "empresa";
 
@@ -72,6 +75,7 @@ export default function ProfileForm({ userId, email, profile }: ProfileFormProps
             type,
             company_name: trimmedCompany || null,
             country: country.trim() || null,
+            gestoria_email: trimmedGestoriaEmail || null,
           },
           { onConflict: "id" }
         );
@@ -159,6 +163,23 @@ export default function ProfileForm({ userId, email, profile }: ProfileFormProps
           onChange={(e) => setCountry(e.target.value)}
           className="mt-1 w-full rounded-lg border border-slate-800 bg-[#020617] px-3 py-2 text-xs text-slate-50 outline-none ring-0 focus:border-slate-500"
         />
+      </div>
+
+      <div>
+        <label className="block text-slate-300" htmlFor="gestoriaEmail">
+          Email de tu gestoría (opcional)
+        </label>
+        <input
+          id="gestoriaEmail"
+          type="email"
+          value={gestoriaEmail}
+          onChange={(e) => setGestoriaEmail(e.target.value)}
+          placeholder="gestoria@ejemplo.com"
+          className="mt-1 w-full rounded-lg border border-slate-800 bg-[#020617] px-3 py-2 text-xs text-slate-50 outline-none ring-0 focus:border-slate-500"
+        />
+        <p className="mt-1 text-[11px] text-slate-400">
+          Usaremos este email para enviar tus facturas a tu gestor/asesor fiscal.
+        </p>
       </div>
 
       <div>

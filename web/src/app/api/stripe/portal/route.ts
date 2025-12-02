@@ -27,6 +27,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
     }
 
+    // Leer body opcional para soportar returnUrl desde móvil
+    let mobileReturnUrl: string | undefined;
+    try {
+      const body = await request.json();
+      if (body && typeof body.returnUrl === "string") {
+        mobileReturnUrl = body.returnUrl;
+      }
+    } catch {
+      // Puede ser una llamada sin body (web), ignoramos el error de JSON
+    }
+
     // Obtener stripe_customer_id del perfil
     const { data: profile } = await supabase
       .from("profiles")
@@ -44,7 +55,7 @@ export async function POST(request: Request) {
     // Crear sesión del portal de facturación
     const session = await stripe.billingPortal.sessions.create({
       customer: profile.stripe_customer_id,
-      return_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard`,
+      return_url: mobileReturnUrl || `${process.env.NEXT_PUBLIC_APP_URL}/dashboard`,
     });
 
     return NextResponse.json({ url: session.url });

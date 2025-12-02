@@ -5,9 +5,10 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   ScrollView,
-  Linking,
   Alert,
 } from "react-native";
+import * as WebBrowser from "expo-web-browser";
+import * as Linking from "expo-linking";
 import { styles } from "../styles";
 import { getSupabaseClient } from "../supabaseClient";
 
@@ -75,6 +76,8 @@ export default function PlansScreen() {
     setPurchasing(plan.id);
 
     try {
+      const redirectUrl = Linking.createURL("stripe-return");
+
       // Llamar al endpoint de checkout
       const response = await fetch(`${API_BASE_URL}/api/stripe/checkout`, {
         method: "POST",
@@ -85,6 +88,7 @@ export default function PlansScreen() {
         body: JSON.stringify({
           priceId: plan.stripe_price_id,
           accessToken: session.access_token,
+          returnUrl: redirectUrl,
         }),
       });
 
@@ -98,12 +102,14 @@ export default function PlansScreen() {
       const data = await response.json();
 
       if (data.url) {
-        // Abrir el checkout de Stripe en el navegador
-        const supported = await Linking.canOpenURL(data.url);
-        if (supported) {
-          await Linking.openURL(data.url);
-        } else {
-          Alert.alert("Error", "No se pudo abrir el enlace de pago.");
+        const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
+
+        if (result.type === "success") {
+          // Volvemos desde Stripe a la app mediante deep link
+          Alert.alert("Suscripción actualizada", "Tu suscripción se ha actualizado correctamente.");
+          await loadData();
+        } else if (result.type === "dismiss" || result.type === "cancel") {
+          // El usuario cerró o canceló el flujo de pago
         }
       } else {
         Alert.alert("Error", data.error || "Error al crear la sesión de pago.");
@@ -127,12 +133,17 @@ export default function PlansScreen() {
     }
 
     try {
+      const redirectUrl = Linking.createURL("stripe-portal-return");
+
       const response = await fetch(`${API_BASE_URL}/api/stripe/portal`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${session.access_token}`,
         },
+        body: JSON.stringify({
+          returnUrl: redirectUrl,
+        }),
       });
 
       if (response.status === 401) {
@@ -145,7 +156,12 @@ export default function PlansScreen() {
       const data = await response.json();
 
       if (data.url) {
-        await Linking.openURL(data.url);
+        const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
+
+        if (result.type === "success") {
+          Alert.alert("Suscripción actualizada", "Se ha actualizado tu suscripción.");
+          await loadData();
+        }
       } else {
         Alert.alert("Error", data.error || "No se pudo abrir el portal.");
       }

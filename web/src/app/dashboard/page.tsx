@@ -81,7 +81,7 @@ export default async function DashboardPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("display_name,first_name,last_name,type,company_name,country")
+    .select("display_name,first_name,last_name,type,company_name,country,gestoria_email")
     .eq("id", user.id)
     .maybeSingle<ProfileData>();
 
