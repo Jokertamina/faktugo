@@ -33,7 +33,7 @@ export default function AuthScreen() {
     setInfo(null);
 
     try {
-      const { error: signInError } = await supabase.auth.signInWithPassword({
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password,
       });
@@ -41,6 +41,15 @@ export default function AuthScreen() {
       if (signInError) {
         console.warn("Error al iniciar sesion en Supabase desde movil:", signInError);
         setError("No se pudo iniciar sesion. Revisa tus credenciales.");
+        return;
+      }
+
+      // Verificar que la sesion se ha establecido correctamente
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !sessionData?.session) {
+        console.warn("Sesion no disponible despues de iniciar sesion en movil:", sessionError);
+        setError("No se pudo mantener la sesion. Intentalo de nuevo.");
+        return;
       }
     } catch (e) {
       console.warn("Error inesperado en handleSignIn:", e);

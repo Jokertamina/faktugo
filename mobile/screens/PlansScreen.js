@@ -65,8 +65,9 @@ export default function PlansScreen() {
       return;
     }
 
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !session) {
+      console.warn("No se pudo obtener la sesion antes de suscribirse desde movil:", sessionError);
       Alert.alert("Error", "Debes iniciar sesión para suscribirte.");
       return;
     }
@@ -83,6 +84,7 @@ export default function PlansScreen() {
         },
         body: JSON.stringify({
           priceId: plan.stripe_price_id,
+          accessToken: session.access_token,
         }),
       });
 

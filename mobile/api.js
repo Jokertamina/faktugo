@@ -36,6 +36,11 @@ export async function fetchInvoicesFromSupabase() {
     } = await supabase.auth.getUser();
 
     if (userError) {
+      // AuthSessionMissingError indica que simplemente no hay sesión activa
+      if (userError.name === "AuthSessionMissingError") {
+        return null;
+      }
+
       console.warn("No se pudo obtener el usuario al cargar facturas desde Supabase:", userError);
       return null;
     }

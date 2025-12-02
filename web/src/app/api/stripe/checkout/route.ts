@@ -6,21 +6,24 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 export async function POST(request: Request) {
   try {
-    // Intentar autenticación por cookie primero
+    // Leer body una vez para obtener plan / priceId / accessToken (móvil)
+    const body = await request.json();
+    const { plan, priceId: directPriceId, accessToken } = body;
+
+    // Intentar autenticación por cookie primero (web)
     let user = null;
     let supabase = await getSupabaseServerClient();
     const { data: cookieAuth } = await supabase.auth.getUser();
     user = cookieAuth?.user;
 
-    // Si no hay cookie, intentar con Bearer token (para móvil)
+    // Si no hay cookie, intentar con Bearer token (móvil)
     if (!user) {
       const authHeader = request.headers.get("Authorization");
 
       if (authHeader?.startsWith("Bearer ")) {
-        const token = authHeader.substring(7);
+        const tokenFromHeader = authHeader.substring(7);
 
-        // Cliente Supabase autenticado con el token del móvil
-        const supabaseWithToken = getSupabaseClientWithToken(token);
+        const supabaseWithToken = getSupabaseClientWithToken(tokenFromHeader);
         const { data: tokenAuth } = await supabaseWithToken.auth.getUser();
 
         if (tokenAuth?.user) {
@@ -30,25 +33,40 @@ export async function POST(request: Request) {
       }
     }
 
+    // Fallback adicional para móvil: accessToken en el body
+    if (!user && typeof accessToken === "string" && accessToken.length > 0) {
+      const supabaseWithToken = getSupabaseClientWithToken(accessToken);
+      const { data: tokenAuth } = await supabaseWithToken.auth.getUser();
+
+      if (tokenAuth?.user) {
+        user = tokenAuth.user;
+        supabase = supabaseWithToken;
+      }
+    }
+
     if (!user) {
       const authHeader = request.headers.get("Authorization");
       const hasBearer = !!authHeader && authHeader.startsWith("Bearer ");
+      const hasAccessToken = typeof accessToken === "string" && accessToken.length > 0;
 
       return NextResponse.json(
         {
-          error: hasBearer
-            ? "No autenticado (token inválido o expirado)"
-            : "No autenticado (sin sesión)",
+          error:
+            hasBearer || hasAccessToken
+              ? "No autenticado (token inválido o expirado)"
+              : "No autenticado (sin sesión)",
         },
         { status: 401 }
       );
     }
 
-    const body = await request.json();
-    const { plan, priceId: directPriceId } = body;
+    const { plan: _ignoredPlan, priceId: _ignoredPriceId, accessToken: _ignoredToken, ...rest } = body;
+    // Usar las variables ya extraídas arriba
+    const directPriceIdSafe = directPriceId;
+    const planFromBody = plan;
 
-    let priceId = directPriceId;
-    let planId = plan;
+    let priceId = directPriceIdSafe;
+    let planId = planFromBody;
 
     // Si no hay priceId directo, buscar en la BD por el plan id
     if (!priceId && plan) {
