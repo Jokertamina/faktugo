@@ -4,12 +4,6 @@ import Stripe from "stripe";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
-// Mapeo de planes a price IDs de Stripe (fallback)
-const PRICE_IDS: Record<string, string> = {
-  basico: process.env.STRIPE_PRICE_BASICO || "",
-  pro: process.env.STRIPE_PRICE_PRO || "",
-};
-
 export async function POST(request: Request) {
   try {
     // Intentar autenticación por cookie primero
@@ -34,24 +28,35 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    // Aceptar plan (id) o priceId directamente
     const { plan, priceId: directPriceId } = body;
 
-    // Determinar el priceId a usar
     let priceId = directPriceId;
     let planId = plan;
 
+    // Si no hay priceId directo, buscar en la BD por el plan id
     if (!priceId && plan) {
-      priceId = PRICE_IDS[plan];
+      const { data: planData } = await supabase
+        .from("plans")
+        .select("stripe_price_id")
+        .eq("id", plan)
+        .maybeSingle();
+      
+      priceId = planData?.stripe_price_id;
     }
 
     if (!priceId) {
-      return NextResponse.json({ error: "Plan o priceId no válido" }, { status: 400 });
+      return NextResponse.json({ error: "Plan no válido o sin precio configurado" }, { status: 400 });
     }
 
-    // Si tenemos priceId pero no plan, intentar determinar el plan
-    if (!planId) {
-      planId = Object.entries(PRICE_IDS).find(([, id]) => id === priceId)?.[0] || "unknown";
+    // Si tenemos priceId pero no plan, buscar el plan en la BD
+    if (!planId && priceId) {
+      const { data: planData } = await supabase
+        .from("plans")
+        .select("id")
+        .eq("stripe_price_id", priceId)
+        .maybeSingle();
+      
+      planId = planData?.id || "unknown";
     }
 
     // Obtener o crear customer en Stripe
