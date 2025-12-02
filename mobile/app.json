@@ -1,28 +1,57 @@
 {
   "expo": {
-    "name": "mobile",
-    "slug": "mobile",
+    "name": "FaktuGo",
+    "slug": "faktugo",
     "scheme": "faktugo",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#0B1220"
+      "backgroundColor": "#050816"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.faktugo.app",
+      "buildNumber": "1",
+      "infoPlist": {
+        "NSCameraUsageDescription": "FaktuGo necesita acceso a la cámara para escanear facturas y tickets.",
+        "NSPhotoLibraryUsageDescription": "FaktuGo necesita acceso a tus fotos para importar facturas guardadas.",
+        "NSPhotoLibraryAddUsageDescription": "FaktuGo necesita permiso para guardar las facturas escaneadas en tu galería."
+      }
     },
     "android": {
+      "package": "com.faktugo.app",
+      "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
-      }
+        "backgroundColor": "#050816"
+      },
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.INTERNET"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "FaktuGo necesita acceso a tus fotos para importar facturas guardadas.",
+          "cameraPermission": "FaktuGo necesita acceso a la cámara para escanear facturas y tickets."
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "faktugo-app"
+      }
     }
   }
 }

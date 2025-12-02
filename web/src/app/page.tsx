@@ -1,9 +1,14 @@
 import Link from "next/link";
 import { getInvoices } from "@/lib/invoices";
+import { getSupabaseServerClient } from "@/lib/supabaseServer";
 
 export default async function Home() {
   const invoices = await getInvoices();
   const topInvoices = invoices.slice(0, 3);
+  const supabase = await getSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const primaryCtaHref = user ? "/dashboard" : "/login";
+  const primaryCtaLabel = user ? "Ver panel" : "Empieza gratis en menos de 1 minuto";
 
   return (
     <div className="min-h-screen bg-[#050816] text-slate-50">
@@ -25,16 +30,16 @@ export default async function Home() {
             </p>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <Link
-                href="#demo"
+                href={primaryCtaHref}
                 className="inline-flex items-center justify-center rounded-full bg-[#2A5FFF] px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/30 transition hover:bg-[#224bcc]"
               >
-                Empieza gratis en menos de 1 minuto
+                {primaryCtaLabel}
               </Link>
               <Link
-                href="/invoices"
+                href="/app"
                 className="inline-flex items-center justify-center rounded-full border border-slate-600 px-6 py-3 text-sm font-semibold text-slate-100 hover:border-slate-300 hover:bg-slate-900/60"
               >
-                Ver panel demo
+                Descargar app móvil
               </Link>
             </div>
             <dl className="grid gap-4 pt-4 text-sm text-slate-300 sm:grid-cols-3">
@@ -115,52 +120,7 @@ export default async function Home() {
           </div>
         </section>
 
-        {/* Sección 3 — Cómo funciona */}
-        <section id="como-funciona" className="space-y-6">
-          <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">Cómo funciona</h2>
-          <ol className="grid gap-4 text-sm text-slate-200 md:grid-cols-5">
-            <li className="rounded-2xl border border-slate-800 bg-[#0B1220] p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">1. Escanea</p>
-              <p className="mt-2 text-sm">
-                Haz una foto con el móvil o sube un PDF desde tus archivos. Sin pasos técnicos.
-              </p>
-            </li>
-            <li className="rounded-2xl border border-slate-800 bg-[#0B1220] p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">2. Detecta</p>
-              <p className="mt-2 text-sm">
-                Detecta fecha, proveedor e importe mediante OCR y heurísticas pensadas para tickets
-                reales.
-              </p>
-            </li>
-            <li className="rounded-2xl border border-slate-800 bg-[#0B1220] p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                3. Clasifica
-              </p>
-              <p className="mt-2 text-sm">
-                Coloca cada documento en su carpeta mensual o semanal siguiendo las reglas del
-                documento técnico.
-              </p>
-            </li>
-            <li className="rounded-2xl border border-slate-800 bg-[#0B1220] p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                4. Sincroniza (opcional)
-              </p>
-              <p className="mt-2 text-sm">
-                Si activas la cuenta FaktuGo, sincroniza metadatos entre móvil, web y tablet usando
-                Supabase.
-              </p>
-            </li>
-            <li className="rounded-2xl border border-slate-800 bg-[#0B1220] p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                5. Envía (opcional)
-              </p>
-              <p className="mt-2 text-sm">
-                Envía todo a tu gestoría por email o compártelo desde Drive sin perseguir a nadie
-                por correo.
-              </p>
-            </li>
-          </ol>
-        </section>
+        
 
         {/* Sección 4 — Funciones avanzadas */}
         <section className="space-y-6">
@@ -230,7 +190,9 @@ export default async function Home() {
           </div>
         </section>
 
-        {/* Sección 6 — Pricing (teaser hacia /pricing) */}
+        
+
+        {/* Sección 7 — Pricing (teaser hacia /pricing) */}
         <section className="space-y-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -249,7 +211,7 @@ export default async function Home() {
           </div>
         </section>
 
-        {/* Sección 7 — Prueba social (placeholder inicial) */}
+        {/* Sección 8 — Prueba social (placeholder inicial) */}
         <section className="space-y-4">
           <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">Confianza y claridad</h2>
           <p className="max-w-2xl text-sm text-slate-300">
@@ -259,7 +221,7 @@ export default async function Home() {
           </p>
         </section>
 
-        {/* Sección 8 — CTA final */}
+        {/* Sección 9 — CTA final */}
         <section className="space-y-4 rounded-3xl border border-slate-800 bg-[#0B1220] p-6 text-center md:p-8">
           <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
             La forma más inteligente, automática y segura de gestionar tus facturas.

@@ -2,12 +2,16 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { CookieSettingsButton } from "./CookieBanner";
 
 export default function Footer() {
   const pathname = usePathname();
 
-  // Solo mostrar footer en landing y pricing
-  const showFooter = pathname === "/" || pathname === "/pricing";
+  // Solo mostrar footer en landing, pricing y páginas legales
+  const showFooter = 
+    pathname === "/" || 
+    pathname === "/pricing" || 
+    pathname?.startsWith("/legal");
 
   if (!showFooter) {
     return null;
@@ -58,10 +62,27 @@ export default function Footer() {
             <h3 className="text-sm font-semibold text-white mb-4">Legal</h3>
             <ul className="space-y-2 text-sm text-slate-400">
               <li>
-                <span className="text-slate-500">Privacidad (próximamente)</span>
+                <Link href="/legal/aviso-legal" className="hover:text-white transition">
+                  Aviso Legal
+                </Link>
               </li>
               <li>
-                <span className="text-slate-500">Términos (próximamente)</span>
+                <Link href="/legal/terminos" className="hover:text-white transition">
+                  Términos y Condiciones
+                </Link>
+              </li>
+              <li>
+                <Link href="/legal/privacidad" className="hover:text-white transition">
+                  Política de Privacidad
+                </Link>
+              </li>
+              <li>
+                <Link href="/legal/cookies" className="hover:text-white transition">
+                  Política de Cookies
+                </Link>
+              </li>
+              <li>
+                <CookieSettingsButton />
               </li>
             </ul>
           </div>
@@ -71,9 +92,12 @@ export default function Footer() {
           <p className="text-xs text-slate-500">
             © {new Date().getFullYear()} FaktuGo. Todos los derechos reservados.
           </p>
-          <p className="text-xs text-slate-500">
-            Hecho con ❤️ para autónomos y empresas
-          </p>
+          <div className="flex items-center gap-4 text-xs text-slate-500">
+            <Link href="/legal/aviso-legal" className="hover:text-slate-300">Aviso Legal</Link>
+            <Link href="/legal/terminos" className="hover:text-slate-300">Términos</Link>
+            <Link href="/legal/privacidad" className="hover:text-slate-300">Privacidad</Link>
+            <Link href="/legal/cookies" className="hover:text-slate-300">Cookies</Link>
+          </div>
         </div>
       </div>
     </footer>

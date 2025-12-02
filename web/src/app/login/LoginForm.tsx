@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { getSupabaseBrowserClient } from "@/lib/supabaseBrowser";
 
 // Traducir errores de Supabase a mensajes claros en español
@@ -24,11 +25,12 @@ function getErrorMessage(error: any, mode: "login" | "signup"): string {
   if (message.includes("user already registered") || message.includes("already exists")) {
     return "Ya existe una cuenta con este email. Prueba a iniciar sesión.";
   }
-  if (message.includes("password") && message.includes("weak")) {
-    return "La contraseña es demasiado débil. Usa al menos 6 caracteres con letras y números.";
+  // Errores de contraseña - Supabase requiere mínimo 6 caracteres pero recomendamos 8
+  if (message.includes("password") && (message.includes("weak") || message.includes("short") || message.includes("length") || message.includes("characters") || message.includes("at least"))) {
+    return "La contraseña debe tener al menos 8 caracteres. Usa una combinación de letras y números para mayor seguridad.";
   }
-  if (message.includes("password") && (message.includes("short") || message.includes("length"))) {
-    return "La contraseña debe tener al menos 6 caracteres.";
+  if (message.includes("password")) {
+    return "La contraseña no cumple los requisitos. Debe tener al menos 8 caracteres.";
   }
 
   // Errores de email
@@ -72,6 +74,7 @@ export default function LoginForm() {
   const [userType, setUserType] = useState<"autonomo" | "empresa">("autonomo");
   const [companyName, setCompanyName] = useState("");
   const [country, setCountry] = useState("");
+  const [acceptTerms, setAcceptTerms] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -101,6 +104,12 @@ export default function LoginForm() {
           return;
         }
 
+        if (!acceptTerms) {
+          setError("Debes aceptar los Términos y Condiciones y la Política de Privacidad para crear una cuenta.");
+          setLoading(false);
+          return;
+        }
+
         // Construir metadata sin valores null
         const metadata: Record<string, string> = {
           full_name: fullName,
@@ -115,7 +124,7 @@ export default function LoginForm() {
           metadata.country = country.trim();
         }
 
-        const { error } = await supabase.auth.signUp({
+        const { data: signUpData, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -123,6 +132,15 @@ export default function LoginForm() {
           },
         });
         if (error) throw error;
+
+        // Guardar la aceptación de términos en el perfil
+        if (signUpData?.user?.id) {
+          const LEGAL_VERSION = "2025-12-02";
+          await supabase.from("profiles").update({
+            accepted_legal_at: new Date().toISOString(),
+            accepted_legal_version: LEGAL_VERSION,
+          }).eq("id", signUpData.user.id);
+        }
       } else {
         const { error } = await supabase.auth.signInWithPassword({
           email,
@@ -284,17 +302,45 @@ export default function LoginForm() {
         </div>
       )}
 
+      {/* Checkbox de aceptación de términos - solo en registro */}
+      {mode === "signup" && (
+        <div className="space-y-1">
+          <label className="flex items-start gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={acceptTerms}
+              onChange={(e) => setAcceptTerms(e.target.checked)}
+              className="mt-1 h-4 w-4 rounded border-slate-600 bg-slate-800 text-[#22CC88] focus:ring-0"
+            />
+            <span className="text-xs text-slate-300 leading-relaxed">
+              He leído y acepto los{" "}
+              <Link href="/legal/terminos" target="_blank" className="text-blue-400 hover:underline">
+                Términos y Condiciones
+              </Link>{" "}
+              y la{" "}
+              <Link href="/legal/privacidad" target="_blank" className="text-blue-400 hover:underline">
+                Política de Privacidad
+              </Link>
+              .
+            </span>
+          </label>
+        </div>
+      )}
+
       <button
         type="submit"
-        disabled={loading}
+        disabled={loading || (mode === "signup" && !acceptTerms)}
         className="mt-2 inline-flex w-full items-center justify-center rounded-full bg-[#2A5FFF] px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-500/40 transition hover:bg-[#224bcc] disabled:cursor-not-allowed disabled:opacity-60"
       >
         {loading ? "Procesando..." : mode === "login" ? "Entrar" : "Crear cuenta"}
       </button>
 
-      <p className="mt-2 text-[11px] leading-relaxed text-slate-400">
-        Al crear una cuenta, aceptas que FaktuGo almacene tus datos de acceso y metadatos de uso
-        siguiendo el enfoque Local-First descrito en la documentación tecnica.
+      <p className="mt-2 text-center text-[11px] leading-relaxed text-slate-500">
+        <Link href="/legal/terminos" className="hover:text-slate-300">Términos</Link>
+        {" · "}
+        <Link href="/legal/privacidad" className="hover:text-slate-300">Privacidad</Link>
+        {" · "}
+        <Link href="/legal/cookies" className="hover:text-slate-300">Cookies</Link>
       </p>
     </form>
   );

@@ -6,16 +6,16 @@ import { createBrowserClient } from "@supabase/ssr";
 import { useEffect, useState } from "react";
 
 const appNavItems = [
-  { href: "/dashboard", label: "Dashboard", icon: "📊" },
-  { href: "/invoices", label: "Facturas", icon: "📄" },
-  { href: "/invoices/upload", label: "Subir", icon: "📤" },
-  { href: "/", label: "Inicio", icon: "🏠" },
+  { href: "/", label: "Inicio"},
+  { href: "/dashboard", label: "Dashboard"},
+  { href: "/invoices", label: "Facturas"},
+  { href: "/invoices/upload", label: "Subir"},
 ];
 
 const landingNavItems = [
   { href: "/", label: "Inicio" },
   { href: "/pricing", label: "Planes" },
-  { href: "/#como-funciona", label: "Cómo funciona" },
+  { href: "/como-funciona", label: "Cómo funciona" },
 ];
 
 export default function Header() {
@@ -44,7 +44,11 @@ export default function Header() {
     return null;
   }
 
-  const isLanding = pathname === "/" || pathname === "/pricing";
+  const isLanding =
+    pathname === "/" ||
+    pathname === "/pricing" ||
+    pathname === "/como-funciona" ||
+    pathname === "/app";
 
   // Landing/Public Header
   if (isLanding) {
@@ -79,23 +83,15 @@ export default function Header() {
                 href="/dashboard"
                 className="rounded-full bg-[#22CC88] px-4 py-2 text-xs font-semibold text-slate-900 hover:bg-[#18a96f] transition"
               >
-                Ir al panel
+                Panel
               </Link>
             ) : (
-              <>
-                <Link
-                  href="/login"
-                  className="hidden rounded-lg px-3 py-2 text-sm text-slate-300 hover:text-white sm:block"
-                >
-                  Acceder
-                </Link>
-                <Link
-                  href="/login"
-                  className="rounded-full bg-[#2A5FFF] px-4 py-2 text-xs font-semibold text-white hover:bg-[#224bcc] transition"
-                >
-                  Empezar gratis
-                </Link>
-              </>
+              <Link
+                href="/login"
+                className="rounded-full bg-[#2A5FFF] px-4 py-2 text-xs font-semibold text-white hover:bg-[#224bcc] transition"
+              >
+                Acceder
+              </Link>
             )}
           </div>
         </div>
@@ -132,7 +128,6 @@ export default function Header() {
                     : "text-slate-400 hover:bg-white/5 hover:text-white"
                 }`}
               >
-                <span>{item.icon}</span>
                 <span>{item.label}</span>
               </Link>
             );
@@ -186,7 +181,6 @@ export default function Header() {
                       : "text-slate-400 hover:bg-white/5"
                   }`}
                 >
-                  <span>{item.icon}</span>
                   <span>{item.label}</span>
                 </Link>
               );

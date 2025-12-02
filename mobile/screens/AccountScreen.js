@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, ScrollView, TextInput, TouchableOpacity, ActivityIndicator, Alert } from "react-native";
+import { View, Text, ScrollView, TextInput, TouchableOpacity, ActivityIndicator, Alert, Linking } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
@@ -582,6 +582,32 @@ export default function AccountScreen() {
           </TouchableOpacity>
           <Text style={{ color: "#6B7280", fontSize: 11, textAlign: "center", marginTop: 8 }}>
             Solo cierra sesión en este dispositivo
+          </Text>
+        </View>
+
+        {/* Enlaces legales sutiles estilo footer */}
+        <View style={{ marginTop: 32, alignItems: "center" }}>
+          <Text style={{ color: "#4B5563", fontSize: 10, textAlign: "center" }}>
+            <Text
+              style={{ textDecorationLine: "underline" }}
+              onPress={() => Linking.openURL("https://faktugo.com/legal/terminos")}
+            >
+              Términos
+            </Text>
+            {"  ·  "}
+            <Text
+              style={{ textDecorationLine: "underline" }}
+              onPress={() => Linking.openURL("https://faktugo.com/legal/privacidad")}
+            >
+              Privacidad
+            </Text>
+            {"  ·  "}
+            <Text
+              style={{ textDecorationLine: "underline" }}
+              onPress={() => Linking.openURL("https://faktugo.com/legal/cookies")}
+            >
+              Cookies
+            </Text>
           </Text>
         </View>
 

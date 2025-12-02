@@ -9,6 +9,9 @@ node_modules/
 /web/out/
 /web/build/
 /web/.vercel/
+/supabase/
+*APP_STORE.MD
+*GOOGLE_PLAY_STORE.md
 
 # Builds React Native / Expo (mobile)
 /mobile/.expo/

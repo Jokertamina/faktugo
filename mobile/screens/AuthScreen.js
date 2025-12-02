@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, ScrollView, KeyboardAvoidingView, Platform } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, ScrollView, KeyboardAvoidingView, Platform, Linking } from "react-native";
 import { styles } from "../styles";
 import { getSupabaseClient } from "../supabaseClient";
 
@@ -11,6 +11,7 @@ export default function AuthScreen() {
   const [userType, setUserType] = useState("autonomo"); // "autonomo" | "empresa"
   const [companyName, setCompanyName] = useState("");
   const [country, setCountry] = useState("");
+  const [acceptTerms, setAcceptTerms] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [info, setInfo] = useState(null);
@@ -117,6 +118,15 @@ export default function AuthScreen() {
         console.warn("Error al registrar usuario en Supabase desde movil:", signUpError);
         setError("No se pudo crear la cuenta. Revisa los datos o prueba mas tarde.");
         return;
+      }
+
+      // Guardar la aceptación de términos en el perfil
+      if (data?.user?.id) {
+        const LEGAL_VERSION = "2025-12-02";
+        await supabase.from("profiles").update({
+          accepted_legal_at: new Date().toISOString(),
+          accepted_legal_version: LEGAL_VERSION,
+        }).eq("id", data.user.id);
       }
 
       if (!data.session) {
@@ -344,6 +354,61 @@ export default function AuthScreen() {
           <Text style={{ color: "#6EE7B7", fontSize: 12, marginTop: 4 }}>{info}</Text>
         )}
 
+        {/* Checkbox de aceptación de términos - solo en registro */}
+        {!isSignin && (
+          <TouchableOpacity
+            onPress={() => setAcceptTerms(!acceptTerms)}
+            style={{
+              marginTop: 10,
+              flexDirection: "row",
+              alignItems: "flex-start",
+              gap: 8,
+            }}
+          >
+            <View
+              style={{
+                marginTop: 2,
+                width: 16,
+                height: 16,
+                borderRadius: 4,
+                borderWidth: 1,
+                borderColor: acceptTerms ? "#22CC88" : "#4B5563",
+                backgroundColor: acceptTerms ? "rgba(34,204,136,0.15)" : "transparent",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              {acceptTerms && (
+                <View
+                  style={{
+                    width: 10,
+                    height: 10,
+                    borderRadius: 3,
+                    backgroundColor: "#22CC88",
+                  }}
+                />
+              )}
+            </View>
+            <Text style={{ color: "#D1D5DB", fontSize: 11, flex: 1 }}>
+              He leído y acepto los
+              <Text
+                style={{ color: "#60A5FA" }}
+                onPress={() => Linking.openURL("https://faktugo.com/legal/terminos")}
+              >
+                {" Términos y Condiciones"}
+              </Text>
+              {" y la"}
+              <Text
+                style={{ color: "#60A5FA" }}
+                onPress={() => Linking.openURL("https://faktugo.com/legal/privacidad")}
+              >
+                {" Política de Privacidad"}
+              </Text>
+              {"."}
+            </Text>
+          </TouchableOpacity>
+        )}
+
         <TouchableOpacity
           style={{
             marginTop: 8,
@@ -354,9 +419,10 @@ export default function AuthScreen() {
             flexDirection: "row",
             justifyContent: "center",
             gap: 8,
+            opacity: loading || (!isSignin && !acceptTerms) ? 0.6 : 1,
           }}
           onPress={isSignin ? handleSignIn : handleSignUp}
-          disabled={loading}
+          disabled={loading || (!isSignin && !acceptTerms)}
         >
           {loading && <ActivityIndicator size="small" color="#022c22" />}
           <Text
@@ -382,6 +448,7 @@ export default function AuthScreen() {
             setMode(isSignin ? "signup" : "signin");
             setError(null);
             setInfo(null);
+            setAcceptTerms(false);
           }}
         >
           <Text style={{ color: "#9CA3AF", fontSize: 12 }}>
@@ -390,6 +457,32 @@ export default function AuthScreen() {
               : "¿Ya tienes cuenta? Inicia sesión"}
           </Text>
         </TouchableOpacity>
+
+        {/* Enlace legal muy sutil - solo en login */}
+        {isSignin && (
+          <Text
+            style={{
+              marginTop: 16,
+              color: "#4B5563",
+              fontSize: 10,
+              textAlign: "center",
+            }}
+          >
+            <Text
+              style={{ color: "#6B7280", textDecorationLine: "underline" }}
+              onPress={() => Linking.openURL("https://faktugo.com/legal/terminos")}
+            >
+              Términos
+            </Text>
+            {"  ·  "}
+            <Text
+              style={{ color: "#6B7280", textDecorationLine: "underline" }}
+              onPress={() => Linking.openURL("https://faktugo.com/legal/privacidad")}
+            >
+              Privacidad
+            </Text>
+          </Text>
+        )}
       </View>
       </ScrollView>
     </KeyboardAvoidingView>
