@@ -11,8 +11,7 @@ import * as WebBrowser from "expo-web-browser";
 import * as Linking from "expo-linking";
 import { styles } from "../styles";
 import { getSupabaseClient } from "../supabaseClient";
-
-const API_BASE_URL = "https://faktugo.com";
+import { API_BASE_URL } from "../config";
 
 export default function PlansScreen() {
   const [plans, setPlans] = useState([]);
