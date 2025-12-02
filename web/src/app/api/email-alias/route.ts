@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServerClient, getSupabaseClientWithToken } from "@/lib/supabaseServer";
+import { canUseEmailIngestion } from "@/lib/subscription";
 import { headers } from "next/headers";
 
 async function getAuthenticatedSupabase() {
@@ -197,11 +198,16 @@ export async function GET() {
     const autoSend = profile?.auto_send_ingested_to_gestoria ?? false;
     const gestoriaEmail = profile?.gestoria_email ?? null;
 
+    // Comprobamos si el usuario puede usar la ingesta por email segun su plan
+    const emailIngestionCheck = await canUseEmailIngestion(supabase, user.id);
+
     return NextResponse.json({
       alias,
       autoSendToGestoria: autoSend,
       hasGestoriaEmail: !!gestoriaEmail,
       gestoriaEmail,
+      canUseEmailIngestion: emailIngestionCheck.allowed,
+      emailIngestionReason: emailIngestionCheck.reason ?? null,
     });
   } catch (e) {
     console.error("Error inesperado en /api/email-alias [GET]:", e);

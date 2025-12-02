@@ -7,6 +7,8 @@ interface EmailAliasResponse {
   autoSendToGestoria: boolean;
   hasGestoriaEmail: boolean;
   gestoriaEmail: string | null;
+  canUseEmailIngestion?: boolean;
+  emailIngestionReason?: string | null;
 }
 
 export default function EmailAliasCard() {
@@ -19,6 +21,11 @@ export default function EmailAliasCard() {
   const [copyLabel, setCopyLabel] = useState<string>("Copiar");
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+
+  const [canUseEmailIngestion, setCanUseEmailIngestion] = useState<boolean | null>(null);
+  const [emailIngestionReason, setEmailIngestionReason] = useState<string | null>(null);
+
+  const featureDisabled = canUseEmailIngestion === false;
 
   useEffect(() => {
     let cancelled = false;
@@ -38,6 +45,10 @@ export default function EmailAliasCard() {
         setAutoSend(data.autoSendToGestoria);
         setHasGestoriaEmail(data.hasGestoriaEmail);
         setGestoriaEmail(data.gestoriaEmail ?? null);
+        setCanUseEmailIngestion(
+          typeof data.canUseEmailIngestion === "boolean" ? data.canUseEmailIngestion : true
+        );
+        setEmailIngestionReason(data.emailIngestionReason ?? null);
       } catch (e: any) {
         if (cancelled) return;
         setError(e?.message ?? "No se pudo cargar la configuracion de correo interno.");
@@ -54,6 +65,14 @@ export default function EmailAliasCard() {
   }, []);
 
   async function handleToggleChange(next: boolean) {
+    if (featureDisabled) {
+      setError(
+        emailIngestionReason ||
+          "La ingesta por email no está disponible en tu plan actual. Actualiza tu plan para usar esta función."
+      );
+      return;
+    }
+
     try {
       setSaving(true);
       setError(null);
@@ -133,7 +152,7 @@ export default function EmailAliasCard() {
             <button
               type="button"
               onClick={handleCopy}
-              disabled={loading || !alias}
+              disabled={loading || !alias || featureDisabled}
               className="rounded-full bg-[#111827] px-3 py-1 text-[11px] font-semibold text-slate-50 hover:bg-[#1f2937] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {copyLabel}
@@ -146,7 +165,7 @@ export default function EmailAliasCard() {
             id="autoSendToGestoria"
             type="checkbox"
             checked={autoSend}
-            disabled={saving || loading}
+            disabled={saving || loading || featureDisabled}
             onChange={(e) => handleToggleChange(e.target.checked)}
             className="mt-0.5 h-3 w-3 rounded border-slate-700 bg-[#020617] text-[#2A5FFF]"
           />
@@ -163,14 +182,23 @@ export default function EmailAliasCard() {
           <button
             type="button"
             onClick={handleSendInstructions}
-            disabled={!hasGestoriaEmail || loading}
+            disabled={!hasGestoriaEmail || loading || featureDisabled}
             className="inline-flex items-center justify-center rounded-full bg-[#2A5FFF] px-4 py-2 text-[11px] font-semibold text-white shadow-lg shadow-blue-500/40 transition hover:bg-[#224bcc] disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {hasGestoriaEmail
+            {featureDisabled
+              ? "Función disponible en planes Básico o Pro"
+              : hasGestoriaEmail
               ? "Enviar instrucciones a mi gestoria"
               : "Configura primero el email de tu gestoria"}
           </button>
         </div>
+
+        {featureDisabled && (
+          <p className="mt-2 text-[11px] text-amber-400">
+            {emailIngestionReason ||
+              "La ingesta por email no está disponible en tu plan gratuito. Actualiza a Básico o Pro para activar tu correo interno."}
+          </p>
+        )}
 
         {error && <p className="mt-2 text-[11px] text-red-400">{error}</p>}
         {message && <p className="mt-2 text-[11px] text-emerald-400">{message}</p>}
