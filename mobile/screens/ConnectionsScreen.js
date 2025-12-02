@@ -160,8 +160,9 @@ export default function ConnectionsScreen({ invoices = [], onRefresh }) {
               });
               
               if (res.status === 401) {
-                console.warn("ConnectionsScreen: 401 en /api/email-alias, cerrando sesión.");
-                await supabase.auth.signOut({ scope: "local" });
+                console.warn(
+                  "ConnectionsScreen: 401 en /api/email-alias, ocultando correo interno (sin cerrar sesión)."
+                );
                 return;
               }
 
