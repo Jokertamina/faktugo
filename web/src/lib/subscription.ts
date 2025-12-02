@@ -22,47 +22,19 @@ export interface PlanLimits {
   canUseEmailIngestion: boolean;
 }
 
-// Fallback por defecto si no se puede leer de BD
-const DEFAULT_PLANS: Record<string, PlanConfig> = {
-  free: {
-    id: "free",
-    displayName: "Gratuito",
-    description: "Para probar FaktuGo",
-    invoicesPerMonth: 5,
-    canSendToGestoria: false,
-    canUseEmailIngestion: false,
-    priceMonthly: 0,
-    stripePriceId: null,
-    isActive: true,
-    sortOrder: 0,
-    features: ["Hasta 5 facturas/mes", "Procesamiento IA", "Sincronización web y móvil"],
-  },
-  basico: {
-    id: "basico",
-    displayName: "Básico",
-    description: "Para negocios con volumen moderado",
-    invoicesPerMonth: 50,
-    canSendToGestoria: true,
-    canUseEmailIngestion: true,
-    priceMonthly: 999,
-    stripePriceId: null,
-    isActive: true,
-    sortOrder: 1,
-    features: ["Hasta 50 facturas/mes", "Procesamiento IA", "Envío a gestoría", "Ingesta por email", "Sincronización web y móvil", "Soporte por email"],
-  },
-  pro: {
-    id: "pro",
-    displayName: "Pro",
-    description: "Para negocios con alto volumen",
-    invoicesPerMonth: 200,
-    canSendToGestoria: true,
-    canUseEmailIngestion: true,
-    priceMonthly: 2499,
-    stripePriceId: null,
-    isActive: true,
-    sortOrder: 2,
-    features: ["Todo lo del plan Básico", "Hasta 200 facturas/mes", "Soporte prioritario"],
-  },
+// Plan gratuito mínimo por si no hay planes en BD (solo estructura, no datos)
+const FALLBACK_FREE_PLAN: PlanConfig = {
+  id: "free",
+  displayName: "Gratuito",
+  description: null,
+  invoicesPerMonth: 5,
+  canSendToGestoria: false,
+  canUseEmailIngestion: false,
+  priceMonthly: 0,
+  stripePriceId: null,
+  isActive: true,
+  sortOrder: 0,
+  features: [],
 };
 
 // Cache de planes (TTL: 5 minutos)
@@ -88,9 +60,14 @@ export async function getPlans(supabase: SupabaseClient): Promise<Record<string,
       .eq("is_active", true)
       .order("sort_order", { ascending: true });
 
-    if (error || !data || data.length === 0) {
-      console.warn("No se pudieron cargar planes de BD, usando fallback:", error?.message);
-      return DEFAULT_PLANS;
+    if (error) {
+      console.error("Error cargando planes de BD:", error.message);
+      throw new Error("No se pudieron cargar los planes. Por favor, inténtalo más tarde.");
+    }
+
+    if (!data || data.length === 0) {
+      console.warn("No hay planes en la BD, usando plan free por defecto");
+      return { free: FALLBACK_FREE_PLAN };
     }
 
     const plans: Record<string, PlanConfig> = {};
@@ -117,7 +94,8 @@ export async function getPlans(supabase: SupabaseClient): Promise<Record<string,
     return plans;
   } catch (err) {
     console.error("Error cargando planes:", err);
-    return DEFAULT_PLANS;
+    // En caso de error, devolver solo el plan free mínimo
+    return { free: FALLBACK_FREE_PLAN };
   }
 }
 
@@ -126,7 +104,7 @@ export async function getPlans(supabase: SupabaseClient): Promise<Record<string,
  */
 export async function getPlan(supabase: SupabaseClient, planId: string): Promise<PlanConfig> {
   const plans = await getPlans(supabase);
-  return plans[planId] || plans["free"] || DEFAULT_PLANS["free"];
+  return plans[planId] || plans["free"] || FALLBACK_FREE_PLAN;
 }
 
 /**
@@ -165,7 +143,7 @@ export async function getUserSubscription(
 ): Promise<SubscriptionStatus> {
   // Cargar planes desde BD
   const plans = await getPlans(supabase);
-  const freePlan = plans["free"] || DEFAULT_PLANS["free"];
+  const freePlan = plans["free"] || FALLBACK_FREE_PLAN;
 
   const { data: subscription } = await supabase
     .from("subscriptions")

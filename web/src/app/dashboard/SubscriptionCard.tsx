@@ -5,6 +5,7 @@ import Link from "next/link";
 
 interface UsageData {
   plan: string;
+  planName?: string;
   status: string;
   isAdmin?: boolean;
   usage: {
@@ -18,13 +19,6 @@ interface UsageData {
     canUseEmailIngestion: boolean;
   };
 }
-
-const PLAN_NAMES: Record<string, string> = {
-  free: "Gratuito",
-  basico: "Básico",
-  pro: "Pro",
-  admin: "Administrador",
-};
 
 export default function SubscriptionCard() {
   const [data, setData] = useState<UsageData | null>(null);
@@ -75,7 +69,7 @@ export default function SubscriptionCard() {
   }
 
   const plan = data?.plan || "free";
-  const planName = PLAN_NAMES[plan] || "Gratuito";
+  const planName = data?.planName || data?.plan || "Gratuito";
   const isAdmin = data?.isAdmin || false;
   const isActive = data?.status === "active" || data?.status === "trialing";
   const isPaid = plan !== "free" && plan !== "admin";

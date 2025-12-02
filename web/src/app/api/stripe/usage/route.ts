@@ -42,6 +42,7 @@ export async function GET() {
 
     return NextResponse.json({
       plan: subscription.plan,
+      planName: subscription.planConfig.displayName,
       status: subscription.status,
       isAdmin: false,
       usage: {

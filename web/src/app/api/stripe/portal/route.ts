@@ -1,15 +1,27 @@
 import { NextResponse } from "next/server";
-import { getSupabaseServerClient } from "@/lib/supabaseServer";
+import { getSupabaseServerClient, getSupabaseServiceClient } from "@/lib/supabaseServer";
 import Stripe from "stripe";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
-export async function POST() {
+export async function POST(request: Request) {
   try {
+    // Intentar autenticación por cookie primero
+    let user = null;
     const supabase = await getSupabaseServerClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const { data: cookieAuth } = await supabase.auth.getUser();
+    user = cookieAuth?.user;
+
+    // Si no hay cookie, intentar con Bearer token (para móvil)
+    if (!user) {
+      const authHeader = request.headers.get("Authorization");
+      if (authHeader?.startsWith("Bearer ")) {
+        const token = authHeader.substring(7);
+        const serviceClient = getSupabaseServiceClient();
+        const { data: tokenAuth } = await serviceClient.auth.getUser(token);
+        user = tokenAuth?.user;
+      }
+    }
 
     if (!user) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
