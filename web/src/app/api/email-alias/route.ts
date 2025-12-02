@@ -206,7 +206,7 @@ export async function GET() {
     const autoSend = profile?.auto_send_ingested_to_gestoria ?? false;
     const gestoriaEmail = profile?.gestoria_email ?? null;
 
-    // Comprobamos si el usuario puede usar la ingesta por email segun su plan
+    // Comprobamos si el usuario puede usar la recepción de facturas por correo (correo interno FaktuGo) según su plan
     const emailIngestionCheck = await canUseEmailIngestion(supabase, user.id);
 
     return NextResponse.json({
@@ -248,7 +248,7 @@ export async function PATCH(request: Request) {
         {
           error:
             emailIngestionCheck.reason ||
-            "La ingesta por email no está disponible en tu plan actual. Actualiza tu plan para usar esta función.",
+            "La recepción de facturas por correo (correo interno FaktuGo) no está disponible en tu plan actual. Actualiza tu plan para usar esta función.",
         },
         { status: 403 }
       );

@@ -61,12 +61,21 @@ function MainTabs({ invoices, setInvoices, refreshInvoices }) {
           borderTopColor: "#1F2937",
           borderTopWidth: 1,
           height: 60,
-          paddingBottom: 8,
-          paddingTop: 8,
+          paddingBottom: 6,
+          paddingTop: 6,
+        },
+        tabBarItemStyle: {
+          justifyContent: "center",
+          alignItems: "center",
+        },
+        tabBarIconStyle: {
+          marginBottom: 2,
         },
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: "500",
+          marginTop: 0,
+          marginBottom: 4,
         },
         tabBarIcon: ({ focused, color, size }) => {
           let iconName;

@@ -267,7 +267,7 @@ export async function canSendToGestoria(
 }
 
 /**
- * Verifica si el usuario puede usar la ingesta de facturas por email
+ * Verifica si el usuario puede usar la recepción de facturas por correo (correo interno FaktuGo)
  */
 export async function canUseEmailIngestion(
   supabase: SupabaseClient,
@@ -283,7 +283,8 @@ export async function canUseEmailIngestion(
   if (!subscription.limits.canUseEmailIngestion) {
     return {
       allowed: false,
-      reason: "La ingesta por email no está disponible en el plan gratuito. Actualiza a Básico o Pro para usar esta función.",
+      reason:
+        "La recepción de facturas por correo (correo interno FaktuGo) no está disponible en el plan gratuito. Actualiza a Básico o Pro para activar tu correo interno.",
     };
   }
 

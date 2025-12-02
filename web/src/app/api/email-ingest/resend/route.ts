@@ -222,16 +222,19 @@ export async function POST(request: Request) {
       const clientDisplayName = combinedName || (profile?.display_name ?? "Tu cliente");
 
       // =====================================================
-      // VERIFICAR SUSCRIPCIÓN: ¿Puede usar ingesta por email?
+      // VERIFICAR SUSCRIPCIÓN: ¿Puede usar el correo interno (recepción de facturas por email)?
       // =====================================================
       const emailIngestionCheck = await canUseEmailIngestion(supabase, userId);
       if (!emailIngestionCheck.allowed) {
-        console.log(`[Email Ingest] Usuario ${userId} no puede usar ingesta por email: ${emailIngestionCheck.reason}`);
+        console.log(
+          `[Email Ingest] Usuario ${userId} no puede usar el correo interno por email: ${emailIngestionCheck.reason}`
+        );
         for (const att of data.attachments ?? []) {
           results.push({
             userId,
             attachmentId: att.id,
-            error: "La ingesta por email no está disponible en tu plan. Actualiza a Básico o Pro.",
+            error:
+              "La recepción de facturas por correo (correo interno FaktuGo) no está disponible en tu plan. Actualiza a Básico o Pro.",
           });
         }
         continue; // Saltar a siguiente alias

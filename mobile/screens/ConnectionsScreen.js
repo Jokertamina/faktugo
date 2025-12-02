@@ -277,7 +277,7 @@ export default function ConnectionsScreen({ invoices = [], onRefresh }) {
               {!loadingUser && featureDisabled ? (
                 <Text style={{ color: "#FBBF24", fontSize: 12 }}>
                   {emailIngestionReason ||
-                    "La ingesta por email no está disponible en tu plan gratuito. Actualiza a Básico o Pro para activar tu correo interno."}
+                    "La recepción de facturas por correo (correo interno FaktuGo) no está disponible en tu plan gratuito. Actualiza a Básico o Pro para activar tu correo interno."}
                 </Text>
               ) : !loadingUser && emailAlias ? (
                 <View>

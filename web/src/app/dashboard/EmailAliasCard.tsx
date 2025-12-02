@@ -69,7 +69,7 @@ export default function EmailAliasCard() {
     if (featureDisabled) {
       setError(
         emailIngestionReason ||
-          "La ingesta por email no está disponible en tu plan actual. Actualiza tu plan para usar esta función."
+          "La recepción de facturas por correo (correo interno FaktuGo) no está disponible en tu plan actual. Actualiza tu plan para usar esta función."
       );
       return;
     }
@@ -206,7 +206,7 @@ export default function EmailAliasCard() {
         {featureDisabled && (
           <p className="mt-2 text-[11px] text-amber-400">
             {emailIngestionReason ||
-              "La ingesta por email no está disponible en tu plan gratuito. Actualiza a Básico o Pro para activar tu correo interno."}
+              "La recepción de facturas por correo (correo interno FaktuGo) no está disponible en tu plan gratuito. Actualiza a Básico o Pro para activar tu correo interno."}
           </p>
         )}
 

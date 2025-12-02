@@ -209,7 +209,7 @@ function PlanCard({
               onChange={(v) => onChange({ ...plan, can_send_gestoria: v })}
             />
             <Toggle
-              label="Ingesta por email"
+              label="Correo interno FaktuGo (facturas por correo)"
               checked={plan.can_use_email_ingestion}
               onChange={(v) => onChange({ ...plan, can_use_email_ingestion: v })}
             />
@@ -293,7 +293,7 @@ function PlanCard({
           </p>
         </div>
         <div className="rounded-lg bg-slate-800/50 p-3">
-          <p className="text-xs text-slate-400">Ingesta email</p>
+          <p className="text-xs text-slate-400">Correo interno (email)</p>
           <p className={`text-lg font-semibold ${plan.can_use_email_ingestion ? "text-emerald-400" : "text-red-400"}`}>
             {plan.can_use_email_ingestion ? "Sí" : "No"}
           </p>
