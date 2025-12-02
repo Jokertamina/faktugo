@@ -28,7 +28,7 @@ export async function POST(request: Request) {
     // Verificar sesión
     const { data: session } = await supabase
       .from("admin_sessions")
-      .select("admin_id")
+      .select("admin_user_id")
       .eq("session_token", sessionToken)
       .gt("expires_at", new Date().toISOString())
       .single();
@@ -57,7 +57,7 @@ export async function POST(request: Request) {
     const { data: admin } = await supabase
       .from("admin_users")
       .select("id, pin_hash")
-      .eq("id", session.admin_id)
+      .eq("id", session.admin_user_id)
       .single();
 
     if (!admin) {
@@ -88,7 +88,7 @@ export async function POST(request: Request) {
     await supabase
       .from("admin_sessions")
       .delete()
-      .eq("admin_id", admin.id)
+      .eq("admin_user_id", admin.id)
       .neq("session_token", sessionToken);
 
     return NextResponse.json({ success: true });
