@@ -31,7 +31,17 @@ export async function POST(request: Request) {
     }
 
     if (!user) {
-      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+      const authHeader = request.headers.get("Authorization");
+      const hasBearer = !!authHeader && authHeader.startsWith("Bearer ");
+
+      return NextResponse.json(
+        {
+          error: hasBearer
+            ? "No autenticado (token inválido o expirado)"
+            : "No autenticado (sin sesión)",
+        },
+        { status: 401 }
+      );
     }
 
     const body = await request.json();
