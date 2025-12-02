@@ -198,6 +198,22 @@ export async function getUserSubscription(
 }
 
 /**
+ * Verifica si el usuario es administrador (acceso ilimitado)
+ */
+export async function isUserAdmin(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<boolean> {
+  const { data } = await supabase
+    .from("profiles")
+    .select("is_admin")
+    .eq("id", userId)
+    .maybeSingle();
+  
+  return data?.is_admin === true;
+}
+
+/**
  * Cuenta las facturas del mes actual para un usuario
  */
 export async function getMonthlyInvoiceCount(
@@ -225,6 +241,11 @@ export async function canUploadInvoice(
   supabase: SupabaseClient,
   userId: string
 ): Promise<{ allowed: boolean; reason?: string; remaining?: number }> {
+  // Admins tienen acceso ilimitado
+  if (await isUserAdmin(supabase, userId)) {
+    return { allowed: true, remaining: Infinity };
+  }
+
   const subscription = await getUserSubscription(supabase, userId);
   const monthlyCount = await getMonthlyInvoiceCount(supabase, userId);
   const limit = subscription.limits.invoicesPerMonth;
@@ -250,6 +271,11 @@ export async function canSendToGestoria(
   supabase: SupabaseClient,
   userId: string
 ): Promise<{ allowed: boolean; reason?: string }> {
+  // Admins tienen acceso ilimitado
+  if (await isUserAdmin(supabase, userId)) {
+    return { allowed: true };
+  }
+
   const subscription = await getUserSubscription(supabase, userId);
   
   if (!subscription.limits.canSendToGestoria) {
@@ -269,6 +295,11 @@ export async function canUseEmailIngestion(
   supabase: SupabaseClient,
   userId: string
 ): Promise<{ allowed: boolean; reason?: string }> {
+  // Admins tienen acceso ilimitado
+  if (await isUserAdmin(supabase, userId)) {
+    return { allowed: true };
+  }
+
   const subscription = await getUserSubscription(supabase, userId);
   
   if (!subscription.limits.canUseEmailIngestion) {

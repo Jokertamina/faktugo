@@ -1,15 +1,38 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, createContext, useContext } from "react";
+
+interface AdminUser {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+  permissions: {
+    dashboard: boolean;
+    users: boolean;
+    plans: boolean;
+    tickets: boolean;
+    security: boolean;
+    admins: boolean;
+  };
+}
 
 interface AuthStatus {
   valid: boolean;
   reason?: string;
-  ip?: string;
+  admin?: AdminUser;
+}
+
+// Context para compartir datos del admin
+const AdminContext = createContext<AdminUser | null>(null);
+
+export function useAdmin() {
+  return useContext(AdminContext);
 }
 
 export default function AdminAuthGate({ children }: { children: React.ReactNode }) {
   const [status, setStatus] = useState<AuthStatus | null>(null);
+  const [email, setEmail] = useState("");
   const [pin, setPin] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -28,9 +51,9 @@ export default function AdminAuthGate({ children }: { children: React.ReactNode 
     }
   }
 
-  async function submitPin(e: React.FormEvent) {
+  async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
-    if (!pin.trim()) return;
+    if (!email.trim() || !pin.trim()) return;
 
     setLoading(true);
     setError("");
@@ -39,16 +62,17 @@ export default function AdminAuthGate({ children }: { children: React.ReactNode 
       const res = await fetch("/api/admin/auth", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pin }),
+        body: JSON.stringify({ email, pin }),
       });
 
       const data = await res.json();
 
       if (res.ok && data.success) {
-        setStatus({ valid: true });
+        setStatus({ valid: true, admin: data.admin });
+        setEmail("");
         setPin("");
       } else {
-        setError(data.error || "Error al verificar PIN");
+        setError(data.error || "Error al iniciar sesión");
       }
     } catch {
       setError("Error de conexión");
@@ -67,36 +91,36 @@ export default function AdminAuthGate({ children }: { children: React.ReactNode 
   }
 
   // Sesión válida - mostrar contenido
-  if (status.valid) {
-    return <>{children}</>;
+  if (status.valid && status.admin) {
+    return (
+      <AdminContext.Provider value={status.admin}>
+        {children}
+      </AdminContext.Provider>
+    );
   }
 
-  // IP no permitida
-  if (status.reason === "ip_not_allowed") {
+  // Cuenta deshabilitada
+  if (status.reason === "account_disabled") {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#050816] p-4">
         <div className="w-full max-w-md rounded-2xl border border-red-500/30 bg-[#0B1220] p-8 text-center">
           <div className="mb-4 text-5xl">🚫</div>
-          <h1 className="text-xl font-semibold text-slate-50">Acceso denegado</h1>
+          <h1 className="text-xl font-semibold text-slate-50">Cuenta deshabilitada</h1>
           <p className="mt-2 text-sm text-slate-400">
-            Tu dirección IP no está autorizada para acceder al panel de administración.
+            Tu cuenta de administrador ha sido deshabilitada. Contacta con el propietario.
           </p>
-          <div className="mt-4 rounded-lg bg-slate-800 p-3">
-            <p className="text-xs text-slate-400">Tu IP:</p>
-            <p className="font-mono text-sm text-slate-200">{status.ip}</p>
-          </div>
           <a
-            href="/dashboard"
+            href="/"
             className="mt-6 inline-block rounded-lg bg-slate-700 px-6 py-2 text-sm text-white hover:bg-slate-600"
           >
-            Volver al dashboard
+            Volver al inicio
           </a>
         </div>
       </div>
     );
   }
 
-  // Requiere PIN
+  // Login requerido
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#050816] p-4">
       <div className="w-full max-w-md rounded-2xl border border-slate-800 bg-[#0B1220] p-8">
@@ -104,23 +128,30 @@ export default function AdminAuthGate({ children }: { children: React.ReactNode 
           <div className="mb-4 text-4xl">🔐</div>
           <h1 className="text-xl font-semibold text-slate-50">Panel de Administración</h1>
           <p className="mt-2 text-sm text-slate-400">
-            Introduce el PIN para acceder
+            Acceso exclusivo para administradores de FaktuGo
           </p>
-          {status.ip && (
-            <p className="mt-1 text-xs text-slate-500">
-              IP: {status.ip}
-            </p>
-          )}
         </div>
 
-        <form onSubmit={submitPin} className="space-y-4">
+        <form onSubmit={handleLogin} className="space-y-4">
           <div>
+            <label className="mb-1 block text-sm text-slate-300">Email</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="tu@email.com"
+              autoFocus
+              className="w-full rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 text-slate-50 placeholder:text-slate-500 focus:border-blue-500 focus:outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm text-slate-300">PIN de acceso</label>
             <input
               type="password"
               value={pin}
               onChange={(e) => setPin(e.target.value)}
-              placeholder="PIN de acceso"
-              autoFocus
+              placeholder="••••••"
               className="w-full rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 text-center text-lg tracking-widest text-slate-50 placeholder:text-slate-500 focus:border-blue-500 focus:outline-none"
             />
           </div>
@@ -131,7 +162,7 @@ export default function AdminAuthGate({ children }: { children: React.ReactNode 
 
           <button
             type="submit"
-            disabled={loading || !pin.trim()}
+            disabled={loading || !email.trim() || !pin.trim()}
             className="w-full rounded-lg bg-blue-600 py-3 font-medium text-white hover:bg-blue-700 disabled:opacity-50"
           >
             {loading ? "Verificando..." : "Acceder"}
@@ -140,10 +171,10 @@ export default function AdminAuthGate({ children }: { children: React.ReactNode 
 
         <div className="mt-6 text-center">
           <a
-            href="/dashboard"
+            href="/"
             className="text-sm text-slate-400 hover:text-white"
           >
-            ← Volver al dashboard
+            ← Volver a FaktuGo
           </a>
         </div>
       </div>

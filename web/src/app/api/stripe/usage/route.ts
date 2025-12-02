@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabaseServer";
-import { getUserSubscription, getMonthlyInvoiceCount } from "@/lib/subscription";
+import { getUserSubscription, getMonthlyInvoiceCount, isUserAdmin } from "@/lib/subscription";
 
 export async function GET() {
   try {
@@ -13,6 +13,28 @@ export async function GET() {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
     }
 
+    // Verificar si es admin (acceso ilimitado)
+    const isAdmin = await isUserAdmin(supabase, user.id);
+    
+    if (isAdmin) {
+      const monthlyCount = await getMonthlyInvoiceCount(supabase, user.id);
+      return NextResponse.json({
+        plan: "admin",
+        status: "active",
+        isAdmin: true,
+        usage: {
+          invoicesThisMonth: monthlyCount,
+          invoicesLimit: Infinity,
+          invoicesRemaining: Infinity,
+          percentUsed: 0,
+        },
+        features: {
+          canSendToGestoria: true,
+          canUseEmailIngestion: true,
+        },
+      });
+    }
+
     const subscription = await getUserSubscription(supabase, user.id);
     const monthlyCount = await getMonthlyInvoiceCount(supabase, user.id);
     const limit = subscription.limits.invoicesPerMonth;
@@ -21,6 +43,7 @@ export async function GET() {
     return NextResponse.json({
       plan: subscription.plan,
       status: subscription.status,
+      isAdmin: false,
       usage: {
         invoicesThisMonth: monthlyCount,
         invoicesLimit: limit,

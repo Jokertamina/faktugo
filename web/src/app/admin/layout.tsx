@@ -1,31 +1,14 @@
-import { redirect } from "next/navigation";
-import { getSupabaseServerClient } from "@/lib/supabaseServer";
 import Link from "next/link";
 import AdminAuthGate from "./AdminAuthGate";
+import AdminHeader from "./AdminHeader";
 
-export default async function AdminLayout({
+export default function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await getSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect("/login");
-  }
-
-  // Verificar si es admin
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("is_admin")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  if (!profile?.is_admin) {
-    redirect("/dashboard");
-  }
-
+  // El AdminAuthGate maneja toda la autenticación
+  // No necesitamos verificar nada en el servidor
   return (
     <AdminAuthGate>
       <div className="min-h-screen bg-[#050816]">
@@ -66,19 +49,14 @@ export default async function AdminLayout({
                     Soporte
                   </Link>
                   <Link
-                    href="/admin/security"
+                    href="/admin/admins"
                     className="rounded-lg px-3 py-1.5 text-sm text-slate-300 hover:bg-white/5 hover:text-white"
                   >
-                    Seguridad
+                    Admins
                   </Link>
                 </nav>
               </div>
-              <Link
-                href="/dashboard"
-                className="text-sm text-slate-400 hover:text-white"
-              >
-                ← Volver a FaktuGo
-              </Link>
+              <AdminHeader />
             </div>
           </div>
         </header>
@@ -110,10 +88,10 @@ export default async function AdminLayout({
             Soporte
           </Link>
           <Link
-            href="/admin/security"
+            href="/admin/admins"
             className="whitespace-nowrap rounded-lg px-3 py-1.5 text-sm text-slate-300 hover:bg-white/5"
           >
-            Seguridad
+            Admins
           </Link>
         </nav>
 

@@ -6,6 +6,7 @@ import Link from "next/link";
 interface UsageData {
   plan: string;
   status: string;
+  isAdmin?: boolean;
   usage: {
     invoicesThisMonth: number;
     invoicesLimit: number;
@@ -22,6 +23,7 @@ const PLAN_NAMES: Record<string, string> = {
   free: "Gratuito",
   basico: "Básico",
   pro: "Pro",
+  admin: "Administrador",
 };
 
 export default function SubscriptionCard() {
@@ -74,16 +76,48 @@ export default function SubscriptionCard() {
 
   const plan = data?.plan || "free";
   const planName = PLAN_NAMES[plan] || "Gratuito";
+  const isAdmin = data?.isAdmin || false;
   const isActive = data?.status === "active" || data?.status === "trialing";
-  const isPaid = plan !== "free";
+  const isPaid = plan !== "free" && plan !== "admin";
   
   const used = data?.usage?.invoicesThisMonth || 0;
   const limit = data?.usage?.invoicesLimit || 5;
   const remaining = data?.usage?.invoicesRemaining || 0;
   const percentUsed = data?.usage?.percentUsed || 0;
   
-  const isNearLimit = percentUsed >= 80;
-  const isAtLimit = remaining === 0;
+  const isNearLimit = !isAdmin && percentUsed >= 80;
+  const isAtLimit = !isAdmin && remaining === 0;
+
+  // Vista especial para admins
+  if (isAdmin) {
+    return (
+      <div className="rounded-2xl border border-amber-500/30 bg-gradient-to-br from-amber-500/10 to-transparent p-4">
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <p className="text-xs text-amber-400">Tu rol</p>
+            <p className="text-lg font-semibold text-slate-50">Administrador</p>
+          </div>
+          <div className="rounded-full bg-amber-500/20 px-3 py-1 text-xs font-medium text-amber-300">
+            👑 Owner
+          </div>
+        </div>
+        <p className="text-sm text-slate-400">
+          Acceso ilimitado a todas las funciones
+        </p>
+        <div className="mt-3 flex items-center gap-2 text-xs text-slate-500">
+          <span>📄 {used} facturas este mes</span>
+          <span>·</span>
+          <span>∞ Sin límites</span>
+        </div>
+        <Link
+          href="/admin"
+          className="mt-3 block rounded-full bg-amber-500/20 px-3 py-1.5 text-center text-xs font-medium text-amber-300 hover:bg-amber-500/30"
+        >
+          Panel de administración
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="rounded-2xl border border-slate-800 bg-[#0B1220] p-4">
