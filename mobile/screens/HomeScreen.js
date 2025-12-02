@@ -9,6 +9,7 @@ import { buildInvoice } from "../domain/invoice";
 import { computePeriodFromDate } from "../domain/period";
 import { getSupabaseClient } from "../supabaseClient";
 import { API_BASE_URL } from "../config";
+import PlanUsageCard from "../components/PlanUsageCard";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -374,6 +375,9 @@ export default function HomeScreen({ navigation, invoices, setInvoices }) {
             <Text style={{ color: "#6B7280", fontSize: 13 }}>Tus facturas, en piloto automático</Text>
           </View>
         </View>
+
+        {/* Plan Usage Card */}
+        <PlanUsageCard />
 
         {/* Stats Cards */}
         <View style={{ flexDirection: "row", gap: 12, marginBottom: 12 }}>

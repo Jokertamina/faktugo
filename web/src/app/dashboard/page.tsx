@@ -5,6 +5,7 @@ import { getInvoices } from "@/lib/invoices";
 import ProfileForm, { type ProfileData } from "./ProfileForm";
 import EmailAliasCard from "./EmailAliasCard";
 import SubscriptionCard from "./SubscriptionCard";
+import SupportButton from "./SupportButton";
 
 const MONTH_NAMES = [
 	"Enero",
@@ -250,6 +251,10 @@ export default async function DashboardPage() {
             <EmailAliasCard />
 
             <SubscriptionCard />
+
+            <div className="flex justify-center">
+              <SupportButton />
+            </div>
           </div>
         </section>
       </main>

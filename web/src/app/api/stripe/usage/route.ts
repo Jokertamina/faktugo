@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabaseServer";
-import { getUserSubscription, getMonthlyInvoiceCount, PLAN_LIMITS } from "@/lib/subscription";
+import { getUserSubscription, getMonthlyInvoiceCount } from "@/lib/subscription";
 
 export async function GET() {
   try {
