@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSupabaseServerClient, getSupabaseClientWithToken } from "@/lib/supabaseServer";
+import { getSupabaseServerClient, getSupabaseClientWithToken, verifyAccessToken } from "@/lib/supabaseServer";
 import { computePeriodFromDate } from "@/lib/invoices";
 import { analyzeInvoiceFile, isValidInvoice, getRejectionReason } from "@/lib/invoiceAI";
 import { canUploadInvoice } from "@/lib/subscription";
@@ -14,9 +14,18 @@ export async function POST(request: Request) {
     const authHeader = request.headers.get("Authorization");
     if (authHeader?.startsWith("Bearer ")) {
       const token = authHeader.slice(7);
-      supabase = getSupabaseClientWithToken(token);
-      const { data: tokenUserData } = await supabase.auth.getUser();
-      user = tokenUserData?.user ?? null;
+      
+      // Usar service role para verificar el token de forma fiable
+      const { user: verifiedUser, error: verifyError } = await verifyAccessToken(token);
+      
+      if (verifyError) {
+        console.warn("[/api/invoices/upload] Token inválido:", verifyError);
+      }
+
+      if (verifiedUser) {
+        user = verifiedUser;
+        supabase = getSupabaseClientWithToken(token);
+      }
     }
   }
 

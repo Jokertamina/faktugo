@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSupabaseServerClient } from "@/lib/supabaseServer";
-import { createClient } from "@supabase/supabase-js";
+import { getSupabaseServerClient, getSupabaseClientWithToken, verifyAccessToken } from "@/lib/supabaseServer";
 import { canSendToGestoria } from "@/lib/subscription";
 
 export async function POST(request: Request) {
@@ -17,44 +16,25 @@ export async function POST(request: Request) {
 
     let supabase: any;
     let user: any = null;
-    let userError: any = null;
 
     if (authHeader.startsWith(bearerPrefix)) {
       const token = authHeader.slice(bearerPrefix.length).trim();
 
-      const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-      if (!url || !anonKey) {
-        return NextResponse.json(
-          { error: "Supabase no esta configurado correctamente en el backend." },
-          { status: 500 }
-        );
+      // Usar service role para verificar el token de forma fiable
+      const { user: verifiedUser, error: verifyError } = await verifyAccessToken(token);
+      
+      if (verifyError) {
+        console.warn("[/api/gestoria/send] Token inválido:", verifyError);
       }
 
-      supabase = createClient(url, anonKey, {
-        global: {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      });
-
-      const { data, error } = await supabase.auth.getUser();
-      user = data?.user ?? null;
-      userError = error;
+      if (verifiedUser) {
+        user = verifiedUser;
+        supabase = getSupabaseClientWithToken(token);
+      }
     } else {
       supabase = await getSupabaseServerClient();
-      const {
-        data,
-        error,
-      } = await supabase.auth.getUser();
+      const { data } = await supabase.auth.getUser();
       user = data?.user ?? null;
-      userError = error;
-    }
-
-    if (userError) {
-      console.error("Error al obtener usuario para envio a gestoria:", userError);
     }
 
     if (!user) {

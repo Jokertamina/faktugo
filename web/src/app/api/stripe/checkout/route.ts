@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSupabaseServerClient, getSupabaseClientWithToken } from "@/lib/supabaseServer";
+import { getSupabaseServerClient, getSupabaseClientWithToken, verifyAccessToken } from "@/lib/supabaseServer";
 import Stripe from "stripe";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
@@ -23,24 +23,31 @@ export async function POST(request: Request) {
       if (authHeader?.startsWith("Bearer ")) {
         const tokenFromHeader = authHeader.substring(7);
 
-        const supabaseWithToken = getSupabaseClientWithToken(tokenFromHeader);
-        const { data: tokenAuth } = await supabaseWithToken.auth.getUser();
+        // Usar service role para verificar el token de forma fiable
+        const { user: verifiedUser, error: verifyError } = await verifyAccessToken(tokenFromHeader);
+        
+        if (verifyError) {
+          console.warn("[/api/stripe/checkout] Token header inválido:", verifyError);
+        }
 
-        if (tokenAuth?.user) {
-          user = tokenAuth.user;
-          supabase = supabaseWithToken;
+        if (verifiedUser) {
+          user = verifiedUser;
+          supabase = getSupabaseClientWithToken(tokenFromHeader);
         }
       }
     }
 
     // Fallback adicional para móvil: accessToken en el body
     if (!user && typeof accessToken === "string" && accessToken.length > 0) {
-      const supabaseWithToken = getSupabaseClientWithToken(accessToken);
-      const { data: tokenAuth } = await supabaseWithToken.auth.getUser();
+      const { user: verifiedUser, error: verifyError } = await verifyAccessToken(accessToken);
+      
+      if (verifyError) {
+        console.warn("[/api/stripe/checkout] Token body inválido:", verifyError);
+      }
 
-      if (tokenAuth?.user) {
-        user = tokenAuth.user;
-        supabase = supabaseWithToken;
+      if (verifiedUser) {
+        user = verifiedUser;
+        supabase = getSupabaseClientWithToken(accessToken);
       }
     }
 

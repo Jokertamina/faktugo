@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSupabaseServerClient, getSupabaseClientWithToken } from "@/lib/supabaseServer";
+import { getSupabaseServerClient, getSupabaseClientWithToken, verifyAccessToken } from "@/lib/supabaseServer";
 import { getUserSubscription, getMonthlyInvoiceCount, isUserAdmin } from "@/lib/subscription";
 
 export async function GET(request: Request) {
@@ -16,12 +16,17 @@ export async function GET(request: Request) {
 
       if (authHeader?.startsWith("Bearer ")) {
         const token = authHeader.substring(7);
-        const supabaseWithToken = getSupabaseClientWithToken(token);
-        const { data: tokenAuth } = await supabaseWithToken.auth.getUser();
+        
+        // Usar service role para verificar el token de forma fiable
+        const { user: verifiedUser, error: verifyError } = await verifyAccessToken(token);
+        
+        if (verifyError) {
+          console.warn("[/api/stripe/usage] Token inválido:", verifyError);
+        }
 
-        if (tokenAuth?.user) {
-          user = tokenAuth.user;
-          supabase = supabaseWithToken;
+        if (verifiedUser) {
+          user = verifiedUser;
+          supabase = getSupabaseClientWithToken(token);
         }
       }
     }

@@ -1,18 +1,29 @@
 import { NextResponse } from "next/server";
 import { getInvoices, computePeriodFromDate } from "@/lib/invoices";
-import { getSupabaseServerClient, getSupabaseClientWithToken, getSupabaseServiceClient } from "@/lib/supabaseServer";
+import { getSupabaseServerClient, getSupabaseClientWithToken, getSupabaseServiceClient, verifyAccessToken } from "@/lib/supabaseServer";
 import { headers } from "next/headers";
 
-async function getAuthenticatedSupabase() {
+async function getAuthenticatedSupabaseAndUser() {
   const headersList = await headers();
   const authHeader = headersList.get("authorization");
   
+  // Si hay Bearer token (móvil), verificar con service role
   if (authHeader?.startsWith("Bearer ")) {
     const token = authHeader.slice(7);
-    return getSupabaseClientWithToken(token);
+    const { user, error } = await verifyAccessToken(token);
+    
+    if (error || !user) {
+      console.warn("[/api/invoices] Token inválido:", error);
+      return { supabase: null, user: null };
+    }
+    
+    return { supabase: getSupabaseClientWithToken(token), user };
   }
   
-  return getSupabaseServerClient();
+  // Si no, usar cookies (web)
+  const supabase = await getSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  return { supabase, user };
 }
 
 export async function GET() {
@@ -88,12 +99,9 @@ export async function POST(request: Request) {
 
 export async function PATCH(request: Request) {
   try {
-    const supabase = await getAuthenticatedSupabase();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const { supabase, user } = await getAuthenticatedSupabaseAndUser();
 
-    if (!user) {
+    if (!supabase || !user) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
     }
 
@@ -163,12 +171,9 @@ export async function PATCH(request: Request) {
 export async function DELETE(request: Request) {
   try {
     // Primero autenticar al usuario
-    const supabase = await getAuthenticatedSupabase();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const { supabase, user } = await getAuthenticatedSupabaseAndUser();
 
-    if (!user) {
+    if (!supabase || !user) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
     }
 

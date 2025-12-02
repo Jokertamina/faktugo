@@ -61,3 +61,24 @@ export function getSupabaseClientWithToken(accessToken: string): SupabaseClient 
     },
   });
 }
+
+/**
+ * Verifica un access token y devuelve el usuario si es válido.
+ * Usa el service role client para validación fiable.
+ */
+export async function verifyAccessToken(accessToken: string): Promise<{ user: any | null; error: string | null }> {
+  try {
+    const serviceClient = getSupabaseServiceClient();
+    const { data, error } = await serviceClient.auth.getUser(accessToken);
+    
+    if (error) {
+      console.error("[verifyAccessToken] Error:", error.message);
+      return { user: null, error: error.message };
+    }
+    
+    return { user: data.user, error: null };
+  } catch (e: any) {
+    console.error("[verifyAccessToken] Exception:", e.message);
+    return { user: null, error: e.message };
+  }
+}

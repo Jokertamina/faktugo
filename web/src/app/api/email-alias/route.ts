@@ -1,20 +1,29 @@
 import { NextResponse } from "next/server";
-import { getSupabaseServerClient, getSupabaseClientWithToken } from "@/lib/supabaseServer";
+import { getSupabaseServerClient, getSupabaseClientWithToken, verifyAccessToken } from "@/lib/supabaseServer";
 import { canUseEmailIngestion } from "@/lib/subscription";
 import { headers } from "next/headers";
 
-async function getAuthenticatedSupabase() {
+async function getAuthenticatedSupabaseAndUser() {
   const headersList = await headers();
   const authHeader = headersList.get("authorization");
   
-  // Si hay Bearer token (móvil), usar ese
+  // Si hay Bearer token (móvil), verificar con service role
   if (authHeader?.startsWith("Bearer ")) {
     const token = authHeader.slice(7);
-    return getSupabaseClientWithToken(token);
+    const { user, error } = await verifyAccessToken(token);
+    
+    if (error || !user) {
+      console.warn("[/api/email-alias] Token inválido:", error);
+      return { supabase: null, user: null };
+    }
+    
+    return { supabase: getSupabaseClientWithToken(token), user };
   }
   
   // Si no, usar cookies (web)
-  return getSupabaseServerClient();
+  const supabase = await getSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  return { supabase, user };
 }
 
 async function getOrCreateEmailAlias(userId: string) {
@@ -171,12 +180,9 @@ async function getOrCreateEmailAlias(userId: string) {
 
 export async function GET() {
   try {
-    const supabase = await getAuthenticatedSupabase();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const { supabase, user } = await getAuthenticatedSupabaseAndUser();
 
-    if (!user) {
+    if (!supabase || !user) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
     }
 
@@ -227,13 +233,23 @@ export async function PATCH(request: Request) {
       );
     }
 
-    const supabase = await getAuthenticatedSupabase();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const { supabase, user } = await getAuthenticatedSupabaseAndUser();
 
-    if (!user) {
+    if (!supabase || !user) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+    }
+
+    // Verificar que el usuario puede usar la ingesta por email
+    const emailIngestionCheck = await canUseEmailIngestion(supabase, user.id);
+    if (!emailIngestionCheck.allowed) {
+      return NextResponse.json(
+        {
+          error:
+            emailIngestionCheck.reason ||
+            "La ingesta por email no está disponible en tu plan actual. Actualiza tu plan para usar esta función.",
+        },
+        { status: 403 }
+      );
     }
 
     const alias = await getOrCreateEmailAlias(user.id);

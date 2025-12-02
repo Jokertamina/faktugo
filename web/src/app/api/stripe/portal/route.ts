@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSupabaseServerClient, getSupabaseServiceClient } from "@/lib/supabaseServer";
+import { getSupabaseServerClient, verifyAccessToken } from "@/lib/supabaseServer";
 import Stripe from "stripe";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
@@ -17,9 +17,13 @@ export async function POST(request: Request) {
       const authHeader = request.headers.get("Authorization");
       if (authHeader?.startsWith("Bearer ")) {
         const token = authHeader.substring(7);
-        const serviceClient = getSupabaseServiceClient();
-        const { data: tokenAuth } = await serviceClient.auth.getUser(token);
-        user = tokenAuth?.user;
+        const { user: verifiedUser, error: verifyError } = await verifyAccessToken(token);
+        
+        if (verifyError) {
+          console.warn("[/api/stripe/portal] Token inválido:", verifyError);
+        }
+        
+        user = verifiedUser;
       }
     }
 
