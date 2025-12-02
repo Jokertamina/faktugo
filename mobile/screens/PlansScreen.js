@@ -88,6 +88,13 @@ export default function PlansScreen() {
         }),
       });
 
+      if (response.status === 401) {
+        console.warn("PlansScreen: 401 en checkout, cerrando sesión.");
+        await supabase.auth.signOut({ scope: "local" });
+        Alert.alert("Sesión caducada", "Vuelve a iniciar sesión para suscribirte.");
+        return;
+      }
+
       const data = await response.json();
 
       if (data.url) {
@@ -127,6 +134,13 @@ export default function PlansScreen() {
           "Authorization": `Bearer ${session.access_token}`,
         },
       });
+
+      if (response.status === 401) {
+        console.warn("PlansScreen: 401 en portal, cerrando sesión.");
+        await supabase.auth.signOut({ scope: "local" });
+        Alert.alert("Sesión caducada", "Vuelve a iniciar sesión para gestionar la suscripción.");
+        return;
+      }
 
       const data = await response.json();
 

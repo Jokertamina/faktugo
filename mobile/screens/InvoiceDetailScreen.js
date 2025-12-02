@@ -56,6 +56,14 @@ export default function InvoiceDetailScreen({ navigation, route, invoices, onRef
         }),
       });
 
+      if (res.status === 401) {
+        console.warn("InvoiceDetailScreen: 401 en PATCH /api/invoices, cerrando sesión.");
+        await supabase.auth.signOut({ scope: "local" });
+        Alert.alert("Sesión caducada", "Vuelve a iniciar sesión para editar facturas.");
+        setSaving(false);
+        return;
+      }
+
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
@@ -106,6 +114,14 @@ export default function InvoiceDetailScreen({ navigation, route, invoices, onRef
                 },
               });
 
+              if (res.status === 401) {
+                console.warn("InvoiceDetailScreen: 401 en DELETE /api/invoices, cerrando sesión.");
+                await supabase.auth.signOut({ scope: "local" });
+                Alert.alert("Sesión caducada", "Vuelve a iniciar sesión para eliminar facturas.");
+                setDeleting(false);
+                return;
+              }
+
               if (!res.ok) {
                 const data = await res.json().catch(() => ({}));
                 Alert.alert("Error", data?.error || "No se pudo eliminar la factura.");
@@ -148,6 +164,14 @@ export default function InvoiceDetailScreen({ navigation, route, invoices, onRef
         },
         body: JSON.stringify({ invoiceId: invoice.id }),
       });
+
+      if (res.status === 401) {
+        console.warn("InvoiceDetailScreen: 401 en /api/gestoria/send, cerrando sesión.");
+        await supabase.auth.signOut({ scope: "local" });
+        Alert.alert("Sesión caducada", "Vuelve a iniciar sesión para enviar facturas a la gestoría.");
+        setSendingToGestoria(false);
+        return;
+      }
 
       const data = await res.json().catch(() => ({}));
 

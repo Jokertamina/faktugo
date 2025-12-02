@@ -73,6 +73,11 @@ export default function PricingClient() {
         body: JSON.stringify({ plan: planId }),
       });
 
+      if (res.status === 401) {
+        router.push("/login");
+        return;
+      }
+
       const data = await res.json();
 
       if (data.url) {
@@ -91,6 +96,12 @@ export default function PricingClient() {
     setLoading("portal");
     try {
       const res = await fetch("/api/stripe/portal", { method: "POST" });
+
+      if (res.status === 401) {
+        router.push("/login");
+        return;
+      }
+
       const data = await res.json();
 
       if (data.url) {
@@ -115,7 +126,6 @@ export default function PricingClient() {
             </h1>
             <p className="mt-2 max-w-xl text-sm text-slate-300">
               Elige el plan que mejor se adapte a tu volumen de facturas.
-              Todos los planes incluyen 14 días de prueba gratuita.
             </p>
           </div>
           {currentPlan !== "free" && (
@@ -242,7 +252,6 @@ export default function PricingClient() {
             Información importante
           </h3>
           <ul className="mt-3 space-y-2 text-sm text-slate-300">
-            <li>• Todos los planes incluyen 14 días de prueba gratuita</li>
             <li>• Puedes cancelar en cualquier momento desde el portal de facturación</li>
             <li>• Los pagos son procesados de forma segura por Stripe</li>
             <li>• IVA no incluido (se añadirá según tu ubicación)</li>

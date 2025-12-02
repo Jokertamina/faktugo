@@ -256,6 +256,13 @@ export default function HomeScreen({ navigation, invoices, setInvoices }) {
           body: formData,
         });
 
+        if (uploadResponse.status === 401) {
+          console.warn("HomeScreen: 401 en upload, cerrando sesión.");
+          await supabase.auth.signOut({ scope: "local" });
+          Alert.alert("Sesión caducada", "Vuelve a iniciar sesión para subir facturas.");
+          return;
+        }
+
         const uploadData = await uploadResponse.json();
 
         if (!uploadResponse.ok) {

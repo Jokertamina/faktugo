@@ -79,6 +79,14 @@ export default function ConnectionsScreen({ invoices = [], onRefresh }) {
                     body: JSON.stringify({ invoiceId: inv.id }),
                   });
 
+                  if (res.status === 401) {
+                    console.warn("ConnectionsScreen: 401 en envío masivo a gestoria, cerrando sesión.");
+                    await supabase.auth.signOut({ scope: "local" });
+                    Alert.alert("Sesión caducada", "Vuelve a iniciar sesión para enviar facturas a la gestoría.");
+                    setSendingBatch(false);
+                    return;
+                  }
+
                   if (res.ok) {
                     sentCount++;
                   } else {
@@ -147,6 +155,12 @@ export default function ConnectionsScreen({ invoices = [], onRefresh }) {
                 },
               });
               
+              if (res.status === 401) {
+                console.warn("ConnectionsScreen: 401 en /api/email-alias, cerrando sesión.");
+                await supabase.auth.signOut({ scope: "local" });
+                return;
+              }
+
               if (res.ok) {
                 const aliasData = await res.json();
                 if (isMounted && aliasData?.alias) {
