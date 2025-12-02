@@ -64,21 +64,41 @@ export function getSupabaseClientWithToken(accessToken: string): SupabaseClient 
 
 /**
  * Verifica un access token y devuelve el usuario si es válido.
- * Usa el service role client para validación fiable.
+ * Intenta primero con service role, si no está disponible usa el cliente con token.
  */
 export async function verifyAccessToken(accessToken: string): Promise<{ user: any | null; error: string | null }> {
+  // Intentar con service role primero (más fiable)
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  
+  if (serviceKey) {
+    try {
+      const serviceClient = getSupabaseServiceClient();
+      const { data, error } = await serviceClient.auth.getUser(accessToken);
+      
+      if (error) {
+        console.error("[verifyAccessToken] Service role error:", error.message);
+        return { user: null, error: error.message };
+      }
+      
+      return { user: data.user, error: null };
+    } catch (e: any) {
+      console.error("[verifyAccessToken] Service role exception:", e.message);
+    }
+  }
+  
+  // Fallback: usar cliente con el token directamente
   try {
-    const serviceClient = getSupabaseServiceClient();
-    const { data, error } = await serviceClient.auth.getUser(accessToken);
+    const clientWithToken = getSupabaseClientWithToken(accessToken);
+    const { data, error } = await clientWithToken.auth.getUser();
     
     if (error) {
-      console.error("[verifyAccessToken] Error:", error.message);
+      console.error("[verifyAccessToken] Token client error:", error.message);
       return { user: null, error: error.message };
     }
     
     return { user: data.user, error: null };
   } catch (e: any) {
-    console.error("[verifyAccessToken] Exception:", e.message);
+    console.error("[verifyAccessToken] Token client exception:", e.message);
     return { user: null, error: e.message };
   }
 }
