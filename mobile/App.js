@@ -1,6 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { StatusBar } from "expo-status-bar";
 import * as WebBrowser from "expo-web-browser";
+import * as SplashScreen from "expo-splash-screen";
+
+// Mantener splash visible hasta que la app esté lista
+SplashScreen.preventAutoHideAsync();
 import { NavigationContainer, useNavigationContainerRef } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
@@ -253,31 +257,22 @@ export default function App() {
     };
   }, [navigationRef, lastBackPress]);
 
+  // Ocultar splash screen nativa cuando la app esté lista
+  const onLayoutRootView = useCallback(async () => {
+    if (!isLoading && !authChecking) {
+      await SplashScreen.hideAsync();
+    }
+  }, [isLoading, authChecking]);
+
   if (isLoading || authChecking) {
-    return (
-      <SafeAreaView style={styles.safeArea}>
-        <StatusBar style="light" />
-        <View style={styles.splashContainer}>
-          <View style={styles.splashLogoCircle}>
-            <Text style={styles.logoText}>FG</Text>
-          </View>
-          <Text style={styles.splashTitle}>FaktuGo</Text>
-          <Text style={styles.splashSubtitle}>Tus facturas, en piloto automatico</Text>
-          <View style={styles.splashDotsRow}>
-            <View style={styles.splashDot} />
-            <View style={styles.splashDot} />
-            <View style={styles.splashDot} />
-          </View>
-        </View>
-      </SafeAreaView>
-    );
+    return null; // La splash screen nativa se mantiene visible
   }
 
   const supabase = getSupabaseClient();
   const mustAuth = !!supabase && !user;
 
   return (
-    <NavigationContainer ref={navigationRef}>
+    <NavigationContainer ref={navigationRef} onReady={onLayoutRootView}>
       <SafeAreaView style={styles.safeArea}>
         <StatusBar style="light" />
         {mustAuth ? (

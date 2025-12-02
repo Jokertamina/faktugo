@@ -264,17 +264,22 @@ export default function ConnectionsScreen({ invoices = [], onRefresh }) {
                   </View>
                 )}
               </View>
-              {!featureDisabled && (
+              {loadingUser ? (
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                  <ActivityIndicator size="small" color="#6B7280" />
+                  <Text style={{ color: "#6B7280", fontSize: 12 }}>Cargando...</Text>
+                </View>
+              ) : canUseEmailIngestion === true && (
                 <Text style={{ color: "#22CC88", fontSize: 11, marginBottom: 4 }}>
                   Incluido en tu plan actual.
                 </Text>
               )}
-              {featureDisabled ? (
+              {!loadingUser && featureDisabled ? (
                 <Text style={{ color: "#FBBF24", fontSize: 12 }}>
                   {emailIngestionReason ||
                     "La ingesta por email no está disponible en tu plan gratuito. Actualiza a Básico o Pro para activar tu correo interno."}
                 </Text>
-              ) : emailAlias ? (
+              ) : !loadingUser && emailAlias ? (
                 <View>
                   <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 4 }}>
                     <Text style={{ color: "#22CC88", fontSize: 14, fontWeight: "600", flex: 1 }}>
@@ -299,7 +304,7 @@ export default function ConnectionsScreen({ invoices = [], onRefresh }) {
                     Reenvía facturas a este correo y se guardarán automáticamente en tu cuenta.
                   </Text>
                 </View>
-              ) : (
+              ) : !loadingUser && !featureDisabled && (
                 <Text style={{ color: "#9CA3AF", fontSize: 12 }}>
                   Genera tu correo interno desde el panel web para recibir facturas automáticamente.
                 </Text>
