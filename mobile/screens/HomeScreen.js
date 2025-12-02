@@ -384,7 +384,7 @@ export default function HomeScreen({ navigation, invoices, setInvoices }) {
         </View>
 
         {/* Plan Usage Card */}
-        <PlanUsageCard />
+        <PlanUsageCard navigation={navigation} />
 
         {/* Stats Cards */}
         <View style={{ flexDirection: "row", gap: 12, marginBottom: 12 }}>

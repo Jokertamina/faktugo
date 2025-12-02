@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, Linking } from "react-native";
+import { View, Text, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { getSupabaseClient } from "../supabaseClient";
 import { API_BASE_URL } from "../config";
 
-export default function PlanUsageCard() {
+export default function PlanUsageCard({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [usage, setUsage] = useState(null);
 
@@ -122,7 +122,7 @@ export default function PlanUsageCard() {
       {/* Upgrade Button (solo para free) */}
       {plan === "free" && (
         <TouchableOpacity
-          onPress={() => Linking.openURL("https://faktugo.com/pricing")}
+          onPress={() => navigation?.navigate("Plans")}
           style={{
             backgroundColor: isAtLimit || isNearLimit ? "#F59E0B" : "#2A5FFF",
             paddingVertical: 10,
