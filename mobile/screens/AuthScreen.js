@@ -82,18 +82,25 @@ export default function AuthScreen() {
     setInfo(null);
 
     try {
+      // Construir metadata sin valores null
+      const metadata = {
+        full_name: fullName,
+        first_name: trimmedFirst,
+        last_name: trimmedLast,
+        type: userType,
+      };
+      if (trimmedCompany) {
+        metadata.company_name = trimmedCompany;
+      }
+      if (country.trim()) {
+        metadata.country = country.trim();
+      }
+
       const { data, error: signUpError } = await supabase.auth.signUp({
         email: email.trim(),
         password,
         options: {
-          data: {
-            full_name: fullName,
-            first_name: trimmedFirst,
-            last_name: trimmedLast,
-            type: userType,
-            company_name: trimmedCompany || null,
-            country: country.trim() || null,
-          },
+          data: metadata,
         },
       });
 

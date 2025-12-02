@@ -47,11 +47,19 @@ function getErrorMessage(error: any, mode: "login" | "signup"): string {
     return "Demasiados intentos. Por favor, espera unos minutos antes de volver a intentarlo.";
   }
 
+  // Error 422 - datos inválidos
+  if (error?.status === 422 || message.includes("422")) {
+    return "Ya existe una cuenta con este email o los datos son inválidos.";
+  }
+
+  // Log para debug
+  console.error("Auth error:", error);
+
   // Mensaje genérico según el modo
   if (mode === "login") {
     return "No se pudo iniciar sesión. Verifica tu email y contraseña.";
   }
-  return "No se pudo crear la cuenta. Inténtalo de nuevo.";
+  return `No se pudo crear la cuenta: ${error?.message || "Inténtalo de nuevo."}`;
 }
 
 export default function LoginForm() {
@@ -93,18 +101,25 @@ export default function LoginForm() {
           return;
         }
 
+        // Construir metadata sin valores null
+        const metadata: Record<string, string> = {
+          full_name: fullName,
+          first_name: trimmedFirst,
+          last_name: trimmedLast,
+          type: userType,
+        };
+        if (trimmedCompany) {
+          metadata.company_name = trimmedCompany;
+        }
+        if (country.trim()) {
+          metadata.country = country.trim();
+        }
+
         const { error } = await supabase.auth.signUp({
           email,
           password,
           options: {
-            data: {
-              full_name: fullName,
-              first_name: trimmedFirst,
-              last_name: trimmedLast,
-              type: userType,
-              company_name: trimmedCompany || null,
-              country: country.trim() || null,
-            },
+            data: metadata,
           },
         });
         if (error) throw error;
