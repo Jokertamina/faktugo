@@ -42,7 +42,15 @@ export async function POST(request: Request) {
           const periodStart = (subscription as any).current_period_start;
           const periodEnd = (subscription as any).current_period_end;
 
-          // Crear o actualizar registro de suscripción
+          // Cancelar suscripciones manuales anteriores del usuario
+          await supabase
+            .from("subscriptions")
+            .update({ status: "canceled" })
+            .eq("user_id", userId)
+            .eq("is_manual", true)
+            .eq("status", "active");
+
+          // Crear o actualizar registro de suscripción (de Stripe, NO manual)
           await supabase.from("subscriptions").upsert(
             {
               user_id: userId,
@@ -58,6 +66,7 @@ export async function POST(request: Request) {
                 ? new Date(periodEnd * 1000).toISOString()
                 : null,
               cancel_at_period_end: subscription.cancel_at_period_end,
+              is_manual: false, // Suscripción de Stripe, NO manual
               updated_at: new Date().toISOString(),
             },
             { onConflict: "stripe_subscription_id" }

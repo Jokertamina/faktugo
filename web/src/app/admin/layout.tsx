@@ -48,6 +48,12 @@ export default async function AdminLayout({
                     Dashboard
                   </Link>
                   <Link
+                    href="/admin/users"
+                    className="rounded-lg px-3 py-1.5 text-sm text-slate-300 hover:bg-white/5 hover:text-white"
+                  >
+                    Usuarios
+                  </Link>
+                  <Link
                     href="/admin/plans"
                     className="rounded-lg px-3 py-1.5 text-sm text-slate-300 hover:bg-white/5 hover:text-white"
                   >
@@ -84,6 +90,12 @@ export default async function AdminLayout({
             className="whitespace-nowrap rounded-lg px-3 py-1.5 text-sm text-slate-300 hover:bg-white/5"
           >
             Dashboard
+          </Link>
+          <Link
+            href="/admin/users"
+            className="whitespace-nowrap rounded-lg px-3 py-1.5 text-sm text-slate-300 hover:bg-white/5"
+          >
+            Usuarios
           </Link>
           <Link
             href="/admin/plans"

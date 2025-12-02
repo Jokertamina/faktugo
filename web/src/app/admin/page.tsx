@@ -81,7 +81,13 @@ export default async function AdminDashboard() {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <QuickAction
+          title="Gestionar Usuarios"
+          description="Asigna planes manualmente a usuarios"
+          href="/admin/users"
+          icon="👥"
+        />
         <QuickAction
           title="Gestionar Planes"
           description="Edita límites, precios y características de los planes"
