@@ -6,5 +6,8 @@
     "web",
     "mobile",
     "packages/core"
-  ]
+  ],
+  "scripts": {
+    "build": "npm run build --workspace web"
+  }
 }
