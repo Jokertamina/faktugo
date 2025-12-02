@@ -1,13 +1,30 @@
 import { NextResponse } from "next/server";
-import { getSupabaseServerClient } from "@/lib/supabaseServer";
+import { getSupabaseServerClient, getSupabaseClientWithToken } from "@/lib/supabaseServer";
 import { getUserSubscription, getMonthlyInvoiceCount, isUserAdmin } from "@/lib/subscription";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const supabase = await getSupabaseServerClient();
-    const {
+    // Intentar autenticación por cookie primero (web)
+    let supabase = await getSupabaseServerClient();
+    let {
       data: { user },
     } = await supabase.auth.getUser();
+
+    // Si no hay cookie, intentar con Bearer token (móvil)
+    if (!user) {
+      const authHeader = request.headers.get("Authorization");
+
+      if (authHeader?.startsWith("Bearer ")) {
+        const token = authHeader.substring(7);
+        const supabaseWithToken = getSupabaseClientWithToken(token);
+        const { data: tokenAuth } = await supabaseWithToken.auth.getUser();
+
+        if (tokenAuth?.user) {
+          user = tokenAuth.user;
+          supabase = supabaseWithToken;
+        }
+      }
+    }
 
     if (!user) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });

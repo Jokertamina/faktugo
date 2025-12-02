@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSupabaseServerClient, getSupabaseServiceClient } from "@/lib/supabaseServer";
+import { getSupabaseServerClient, getSupabaseClientWithToken } from "@/lib/supabaseServer";
 import Stripe from "stripe";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
@@ -8,38 +8,31 @@ export async function POST(request: Request) {
   try {
     // Intentar autenticación por cookie primero
     let user = null;
-    const supabase = await getSupabaseServerClient();
+    let supabase = await getSupabaseServerClient();
     const { data: cookieAuth } = await supabase.auth.getUser();
     user = cookieAuth?.user;
 
     // Si no hay cookie, intentar con Bearer token (para móvil)
     if (!user) {
       const authHeader = request.headers.get("Authorization");
-      console.log("Auth header:", authHeader ? "presente" : "ausente");
-      
+
       if (authHeader?.startsWith("Bearer ")) {
         const token = authHeader.substring(7);
-        console.log("Token length:", token.length);
-        
-        // Usar el service client para verificar el token JWT
-        const serviceClient = getSupabaseServiceClient();
-        const { data: tokenAuth, error: tokenError } = await serviceClient.auth.getUser(token);
-        
-        console.log("Token auth result:", tokenAuth?.user?.id || "no user");
-        if (tokenError) {
-          console.error("Token error:", tokenError.message);
+
+        // Cliente Supabase autenticado con el token del móvil
+        const supabaseWithToken = getSupabaseClientWithToken(token);
+        const { data: tokenAuth } = await supabaseWithToken.auth.getUser();
+
+        if (tokenAuth?.user) {
+          user = tokenAuth.user;
+          supabase = supabaseWithToken;
         }
-        
-        user = tokenAuth?.user;
       }
     }
 
     if (!user) {
-      console.log("No user found after all auth attempts");
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
     }
-    
-    console.log("User authenticated:", user.id);
 
     const body = await request.json();
     const { plan, priceId: directPriceId } = body;
@@ -120,6 +113,11 @@ export async function POST(request: Request) {
       ],
       // Recoger dirección de facturación completa
       billing_address_collection: "required",
+      // Permitir que el checkout actualice nombre/dirección del customer
+      customer_update: {
+        name: "auto",
+        address: "auto",
+      },
       // Recoger NIF/CIF para facturas válidas
       tax_id_collection: {
         enabled: true,
