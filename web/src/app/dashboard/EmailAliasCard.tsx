@@ -26,6 +26,7 @@ export default function EmailAliasCard() {
   const [emailIngestionReason, setEmailIngestionReason] = useState<string | null>(null);
 
   const featureDisabled = canUseEmailIngestion === false;
+  const featureEnabled = canUseEmailIngestion === true;
 
   useEffect(() => {
     let cancelled = false;
@@ -137,6 +138,11 @@ export default function EmailAliasCard() {
   return (
     <div className="rounded-3xl border border-slate-800 bg-[#020617] p-5">
       <h2 className="text-sm font-semibold text-slate-50">Correo interno FaktuGo</h2>
+      {featureEnabled && (
+        <p className="mt-1 text-[11px] text-emerald-400">
+          Incluido en tu plan actual.
+        </p>
+      )}
       <p className="mt-2 text-xs text-slate-300">
         Direccion especial para que tus facturas entren solas en FaktuGo desde tu correo. Puedes
         compartirla con tu gestoria o proveedores.
@@ -147,7 +153,11 @@ export default function EmailAliasCard() {
           <p className="text-[11px] text-slate-400">Tu direccion interna</p>
           <div className="mt-1 flex items-center gap-2">
             <div className="flex-1 rounded-lg border border-slate-800 bg-[#020617] px-3 py-2 text-[11px] text-slate-50 overflow-hidden text-ellipsis">
-              {loading ? "Generando..." : alias || "No disponible"}
+              {loading
+                ? "Generando..."
+                : featureDisabled
+                ? "Disponible a partir del plan Básico"
+                : alias || "No disponible"}
             </div>
             <button
               type="button"

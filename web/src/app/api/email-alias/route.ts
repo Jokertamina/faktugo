@@ -202,7 +202,7 @@ export async function GET() {
     const emailIngestionCheck = await canUseEmailIngestion(supabase, user.id);
 
     return NextResponse.json({
-      alias,
+      alias: emailIngestionCheck.allowed ? alias : null,
       autoSendToGestoria: autoSend,
       hasGestoriaEmail: !!gestoriaEmail,
       gestoriaEmail,

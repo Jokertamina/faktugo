@@ -28,8 +28,9 @@ export default function PlanUsageCard() {
       });
 
       if (res.status === 401) {
-        console.warn("PlanUsageCard: no autenticado en API de uso, cerrando sesión en móvil.");
-        await supabase.auth.signOut({ scope: "local" });
+        console.warn(
+          "PlanUsageCard: no autenticado en API de uso, ocultando tarjeta de uso (sin cerrar sesión)."
+        );
         return;
       }
 

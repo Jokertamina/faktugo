@@ -13,9 +13,13 @@ export default function ConnectionsScreen({ invoices = [], onRefresh }) {
   const [copied, setCopied] = useState(false);
   const [sendingBatch, setSendingBatch] = useState(false);
   const [batchProgress, setBatchProgress] = useState({ sent: 0, total: 0 });
+  const [canUseEmailIngestion, setCanUseEmailIngestion] = useState(null);
+  const [emailIngestionReason, setEmailIngestionReason] = useState(null);
+
+  const featureDisabled = canUseEmailIngestion === false;
 
   const handleCopyEmail = () => {
-    if (!emailAlias) return;
+    if (!emailAlias || featureDisabled) return;
     Clipboard.setString(emailAlias);
     setCopied(true);
     setTimeout(() => setCopied(false), 3000);
@@ -163,9 +167,17 @@ export default function ConnectionsScreen({ invoices = [], onRefresh }) {
 
               if (res.ok) {
                 const aliasData = await res.json();
-                if (isMounted && aliasData?.alias) {
-                  setEmailAlias(aliasData.alias);
+                if (!isMounted) return;
+
+                setEmailAlias(aliasData.alias || null);
+
+                if (typeof aliasData.canUseEmailIngestion === "boolean") {
+                  setCanUseEmailIngestion(aliasData.canUseEmailIngestion);
+                } else {
+                  setCanUseEmailIngestion(true);
                 }
+
+                setEmailIngestionReason(aliasData.emailIngestionReason || null);
               }
             }
           } catch (aliasError) {
@@ -239,7 +251,7 @@ export default function ConnectionsScreen({ invoices = [], onRefresh }) {
                 <Text style={{ color: "#E5E7EB", fontSize: 13, marginLeft: 8, fontWeight: "500" }}>
                   Correo interno FaktuGo
                 </Text>
-                {emailAlias && (
+                {emailAlias && !featureDisabled && (
                   <View style={{
                     backgroundColor: "#22CC8820",
                     paddingHorizontal: 8,
@@ -251,7 +263,17 @@ export default function ConnectionsScreen({ invoices = [], onRefresh }) {
                   </View>
                 )}
               </View>
-              {emailAlias ? (
+              {!featureDisabled && (
+                <Text style={{ color: "#22CC88", fontSize: 11, marginBottom: 4 }}>
+                  Incluido en tu plan actual.
+                </Text>
+              )}
+              {featureDisabled ? (
+                <Text style={{ color: "#FBBF24", fontSize: 12 }}>
+                  {emailIngestionReason ||
+                    "La ingesta por email no está disponible en tu plan gratuito. Actualiza a Básico o Pro para activar tu correo interno."}
+                </Text>
+              ) : emailAlias ? (
                 <View>
                   <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 4 }}>
                     <Text style={{ color: "#22CC88", fontSize: 14, fontWeight: "600", flex: 1 }}>
