@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from "react";
-import { View, Text, ScrollView, TouchableOpacity, Clipboard, Alert, ActivityIndicator } from "react-native";
+import React, { useEffect, useState, useCallback } from "react";
+import { View, Text, ScrollView, TouchableOpacity, Clipboard, Alert, ActivityIndicator, Modal } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { styles } from "../styles";
 import { getSupabaseClient } from "../supabaseClient";
@@ -15,6 +16,10 @@ export default function ConnectionsScreen({ invoices = [], onRefresh }) {
   const [batchProgress, setBatchProgress] = useState({ sent: 0, total: 0 });
   const [canUseEmailIngestion, setCanUseEmailIngestion] = useState(null);
   const [emailIngestionReason, setEmailIngestionReason] = useState(null);
+  const [hasGestoriaEmail, setHasGestoriaEmail] = useState(false);
+  const [batchScope, setBatchScope] = useState("month"); // "month" | "all"
+  const [selectionModalVisible, setSelectionModalVisible] = useState(false);
+  const [selectedInvoiceIds, setSelectedInvoiceIds] = useState([]);
 
   const featureDisabled = canUseEmailIngestion === false;
 
@@ -25,104 +30,157 @@ export default function ConnectionsScreen({ invoices = [], onRefresh }) {
     setTimeout(() => setCopied(false), 3000);
   };
 
-  // Obtener facturas pendientes del mes actual
+  // Refrescar facturas cuando la pestaña de Conexiones gana foco
+  useFocusEffect(
+    useCallback(() => {
+      if (typeof onRefresh === "function") {
+        onRefresh();
+      }
+    }, [onRefresh])
+  );
+
+  // Facturas pendientes candidatas para envío (independiente del mes)
+  const basePending = Array.isArray(invoices)
+    ? invoices.filter((inv) => {
+        if (inv.status !== "Pendiente") return false;
+        if (inv.archival_only) return false;
+        if (inv.sent_to_gestoria_status === "sent") return false;
+        return true;
+      })
+    : [];
+
+  // Pendientes filtradas por mes actual
   const now = new Date();
   const currentMonth = now.getMonth();
   const currentYear = now.getFullYear();
-  
-  const pendingThisMonth = invoices.filter((inv) => {
-    if (inv.status !== "Pendiente") return false;
-    if (inv.archival_only) return false;
-    if (inv.sent_to_gestoria_status === "sent") return false;
-    
+
+  const pendingThisMonth = basePending.filter((inv) => {
     const invDate = new Date(inv.date);
+    if (Number.isNaN(invDate.getTime())) return false;
     return invDate.getMonth() === currentMonth && invDate.getFullYear() === currentYear;
   });
 
-  const handleSendBatch = async () => {
-    if (pendingThisMonth.length === 0) {
-      Alert.alert("Sin facturas", "No hay facturas pendientes de este mes para enviar.");
+  const pendingAll = basePending;
+  const scopeInvoices = batchScope === "month" ? pendingThisMonth : pendingAll;
+
+  const handleSendBatch = () => {
+    if (!hasGestoriaEmail) {
+      Alert.alert(
+        "Configura tu gestoria",
+        "Configura primero el email de tu gestoria en la sección Cuenta para poder enviar paquetes."
+      );
       return;
     }
 
-    Alert.alert(
-      "Enviar a gestoría",
-      `¿Enviar ${pendingThisMonth.length} factura${pendingThisMonth.length !== 1 ? "s" : ""} pendiente${pendingThisMonth.length !== 1 ? "s" : ""} de este mes a tu gestoría?`,
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Enviar",
-          onPress: async () => {
-            const supabase = getSupabaseClient();
-            if (!supabase) return;
+    if (scopeInvoices.length === 0) {
+      Alert.alert(
+        "Sin facturas",
+        batchScope === "month"
+          ? "No hay facturas pendientes este mes para enviar."
+          : "No hay facturas pendientes para enviar."
+      );
+      return;
+    }
 
-            setSendingBatch(true);
-            setBatchProgress({ sent: 0, total: pendingThisMonth.length });
+    // Por defecto seleccionamos todas las facturas en el ámbito actual
+    setSelectedInvoiceIds(scopeInvoices.map((inv) => inv.id));
+    setSelectionModalVisible(true);
+  };
 
-            try {
-              const { data: sessionData } = await supabase.auth.getSession();
-              const accessToken = sessionData?.session?.access_token;
-
-              if (!accessToken) {
-                Alert.alert("Error", "No se pudo obtener la sesión.");
-                setSendingBatch(false);
-                return;
-              }
-
-              let sentCount = 0;
-              let failedCount = 0;
-
-              for (const inv of pendingThisMonth) {
-                try {
-                  const res = await fetch(`${API_BASE_URL}/api/gestoria/send`, {
-                    method: "POST",
-                    headers: {
-                      "Content-Type": "application/json",
-                      Authorization: `Bearer ${accessToken}`,
-                    },
-                    body: JSON.stringify({ invoiceId: inv.id }),
-                  });
-
-                  if (res.status === 401) {
-                    console.warn("ConnectionsScreen: 401 en envío masivo a gestoria, cerrando sesión.");
-                    await supabase.auth.signOut({ scope: "local" });
-                    Alert.alert("Sesión caducada", "Vuelve a iniciar sesión para enviar facturas a la gestoría.");
-                    setSendingBatch(false);
-                    return;
-                  }
-
-                  if (res.ok) {
-                    sentCount++;
-                  } else {
-                    failedCount++;
-                  }
-                } catch {
-                  failedCount++;
-                }
-                setBatchProgress({ sent: sentCount + failedCount, total: pendingThisMonth.length });
-              }
-
-              setSendingBatch(false);
-              
-              if (failedCount === 0) {
-                Alert.alert("Completado", `Se han enviado ${sentCount} facturas a tu gestoría.`);
-              } else {
-                Alert.alert(
-                  "Parcialmente completado",
-                  `Enviadas: ${sentCount}\nFallidas: ${failedCount}`
-                );
-              }
-
-              if (onRefresh) onRefresh();
-            } catch (e) {
-              console.warn("Error en envío masivo:", e);
-              Alert.alert("Error", "No se pudo completar el envío masivo.");
-              setSendingBatch(false);
-            }
-          },
-        },
-      ]
+  const toggleInvoiceSelection = (invoiceId) => {
+    setSelectedInvoiceIds((prev) =>
+      prev.includes(invoiceId)
+        ? prev.filter((id) => id !== invoiceId)
+        : [...prev, invoiceId]
     );
+  };
+
+  const handleSelectAllInScope = () => {
+    setSelectedInvoiceIds(scopeInvoices.map((inv) => inv.id));
+  };
+
+  const handleClearSelection = () => {
+    setSelectedInvoiceIds([]);
+  };
+
+  const handleConfirmBatchSend = async () => {
+    const supabase = getSupabaseClient();
+    if (!supabase) return;
+
+    const candidates = batchScope === "month" ? pendingThisMonth : pendingAll;
+    const invoicesToSend = candidates.filter((inv) =>
+      selectedInvoiceIds.includes(inv.id)
+    );
+
+    if (invoicesToSend.length === 0) {
+      Alert.alert("Sin selección", "Selecciona al menos una factura para enviar.");
+      return;
+    }
+
+    setSelectionModalVisible(false);
+    setSendingBatch(true);
+    setBatchProgress({ sent: 0, total: invoicesToSend.length });
+
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+
+      if (!accessToken) {
+        Alert.alert("Error", "No se pudo obtener la sesión.");
+        setSendingBatch(false);
+        return;
+      }
+
+      let sentCount = 0;
+      let failedCount = 0;
+
+      for (const inv of invoicesToSend) {
+        try {
+          const res = await fetch(`${API_BASE_URL}/api/gestoria/send`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${accessToken}`,
+            },
+            body: JSON.stringify({ invoiceId: inv.id }),
+          });
+
+          if (res.status === 401) {
+            console.warn("ConnectionsScreen: 401 en envío masivo a gestoria, cerrando sesión.");
+            await supabase.auth.signOut({ scope: "local" });
+            Alert.alert("Sesión caducada", "Vuelve a iniciar sesión para enviar facturas a la gestoría.");
+            setSendingBatch(false);
+            return;
+          }
+
+          if (res.ok) {
+            sentCount++;
+          } else {
+            failedCount++;
+          }
+        } catch {
+          failedCount++;
+        }
+        setBatchProgress({ sent: sentCount + failedCount, total: invoicesToSend.length });
+      }
+
+      setSendingBatch(false);
+
+      if (failedCount === 0) {
+        Alert.alert("Completado", `Se han enviado ${sentCount} facturas a tu gestoría.`);
+      } else {
+        Alert.alert(
+          "Parcialmente completado",
+          `Enviadas: ${sentCount}\nFallidas: ${failedCount}`
+        );
+      }
+
+      if (onRefresh) onRefresh();
+    } catch (e) {
+      console.warn("Error en envío masivo:", e);
+      Alert.alert("Error", "No se pudo completar el envío masivo.");
+      setSendingBatch(false);
+    }
   };
 
   useEffect(() => {
@@ -171,6 +229,12 @@ export default function ConnectionsScreen({ invoices = [], onRefresh }) {
                 if (!isMounted) return;
 
                 setEmailAlias(aliasData.alias || null);
+
+                if (typeof aliasData.hasGestoriaEmail === "boolean") {
+                  setHasGestoriaEmail(aliasData.hasGestoriaEmail);
+                } else {
+                  setHasGestoriaEmail(false);
+                }
 
                 if (typeof aliasData.canUseEmailIngestion === "boolean") {
                   setCanUseEmailIngestion(aliasData.canUseEmailIngestion);
@@ -302,6 +366,12 @@ export default function ConnectionsScreen({ invoices = [], onRefresh }) {
                   <Text style={{ color: "#9CA3AF", fontSize: 12 }}>
                     Reenvía facturas a este correo y se guardarán automáticamente en tu cuenta.
                   </Text>
+                  {!hasGestoriaEmail && !featureDisabled && (
+                    <Text style={{ color: "#FBBF24", fontSize: 11, marginTop: 4 }}>
+                      Para que tu gestoria reciba paquetes o envíos automáticos, configura primero su email
+                      en la sección Cuenta.
+                    </Text>
+                  )}
                 </View>
               ) : !loadingUser && !featureDisabled && (
                 <Text style={{ color: "#9CA3AF", fontSize: 12 }}>
@@ -316,14 +386,52 @@ export default function ConnectionsScreen({ invoices = [], onRefresh }) {
         <View style={{ marginBottom: 20 }}>
           <Text style={styles.sectionTitle}>Acciones rapidas</Text>
           <Text style={styles.sectionDescription}>
-            Envía en bloque las facturas pendientes del mes a tu gestoría (requiere correo activo y plan que lo permita).
+            Envía en bloque tus facturas pendientes a tu gestoría (requiere correo activo y plan que lo permita).
+          </Text>
+
+          <View style={{ flexDirection: "row", marginTop: 8, marginBottom: 8, gap: 8 }}>
+            {["month", "all"].map((mode) => {
+              const active = batchScope === mode;
+              const label = mode === "month" ? "Este mes" : "Todas pendientes";
+              return (
+                <TouchableOpacity
+                  key={mode}
+                  onPress={() => setBatchScope(mode)}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    paddingHorizontal: 12,
+                    paddingVertical: 6,
+                    borderRadius: 999,
+                    borderWidth: 1,
+                    borderColor: active ? "#3B82F6" : "#1E293B",
+                    backgroundColor: active ? "#1E3A5F" : "#0F172A",
+                  }}
+                >
+                  <Ionicons
+                    name={mode === "month" ? "calendar" : "layers-outline"}
+                    size={12}
+                    color={active ? "#60A5FA" : "#6B7280"}
+                    style={{ marginRight: 6 }}
+                  />
+                  <Text style={{ color: active ? "#60A5FA" : "#9CA3AF", fontSize: 11, fontWeight: "500" }}>
+                    {label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+          <Text style={{ color: "#6B7280", fontSize: 11, marginBottom: 8 }}>
+            {batchScope === "month"
+              ? `Pendientes este mes: ${pendingThisMonth.length}`
+              : `Pendientes en total: ${pendingAll.length}`}
           </Text>
 
           <TouchableOpacity
             onPress={handleSendBatch}
             disabled={sendingBatch}
             style={{
-              backgroundColor: pendingThisMonth.length > 0 ? "#22CC88" : "#2A5FFF",
+              backgroundColor: scopeInvoices.length > 0 ? "#22CC88" : "#2A5FFF",
               borderRadius: 999,
               paddingVertical: 12,
               paddingHorizontal: 16,
@@ -344,23 +452,180 @@ export default function ConnectionsScreen({ invoices = [], onRefresh }) {
               </>
             ) : (
               <>
-                <Ionicons name="send" size={16} color={pendingThisMonth.length > 0 ? "#022c22" : "#FFFFFF"} />
-                <Text style={{ color: pendingThisMonth.length > 0 ? "#022c22" : "#FFFFFF", fontSize: 13, fontWeight: "600" }}>
-                  {pendingThisMonth.length > 0
-                    ? `Enviar ${pendingThisMonth.length} factura${pendingThisMonth.length !== 1 ? "s" : ""} del mes`
-                    : "Sin facturas pendientes este mes"}
+                <Ionicons name="send" size={16} color={scopeInvoices.length > 0 ? "#022c22" : "#FFFFFF"} />
+                <Text style={{ color: scopeInvoices.length > 0 ? "#022c22" : "#FFFFFF", fontSize: 13, fontWeight: "600" }}>
+                  {scopeInvoices.length > 0
+                    ? batchScope === "month"
+                      ? `Enviar ${scopeInvoices.length} factura${scopeInvoices.length !== 1 ? "s" : ""} del mes actual`
+                      : `Enviar ${scopeInvoices.length} factura${scopeInvoices.length !== 1 ? "s" : ""} pendientes`
+                    : batchScope === "month"
+                      ? "Sin facturas pendientes este mes"
+                      : "Sin facturas pendientes"}
                 </Text>
               </>
             )}
           </TouchableOpacity>
-          {pendingThisMonth.length === 0 && (
+          {scopeInvoices.length === 0 && (
             <Text style={{ color: "#6B7280", fontSize: 11, textAlign: "center" }}>
-              No hay facturas pendientes este mes. En cuanto subas nuevas, podrás enviarlas desde aquí.
+              {batchScope === "month"
+                ? "No hay facturas pendientes este mes. En cuanto subas nuevas, podrás enviarlas desde aquí."
+                : "No hay facturas pendientes ahora mismo. Cuando subas o marques nuevas pendientes, podrás enviarlas desde aquí."}
             </Text>
           )}
         </View>
 
       </ScrollView>
+
+      {selectionModalVisible && (
+        <Modal
+          visible={selectionModalVisible}
+          animationType="slide"
+          transparent
+          onRequestClose={() => setSelectionModalVisible(false)}
+        >
+          <View
+            style={{
+              flex: 1,
+              backgroundColor: "rgba(0,0,0,0.8)",
+              justifyContent: "flex-end",
+            }}
+          >
+            <View
+              style={{
+                maxHeight: "70%",
+                backgroundColor: "#020617",
+                borderTopLeftRadius: 24,
+                borderTopRightRadius: 24,
+                padding: 20,
+              }}
+            >
+              <View
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: 16,
+                }}
+              >
+                <Text style={{ color: "#F9FAFB", fontSize: 16, fontWeight: "700" }}>
+                  Selecciona facturas a enviar
+                </Text>
+                <TouchableOpacity onPress={() => setSelectionModalVisible(false)}>
+                  <Ionicons name="close" size={22} color="#9CA3AF" />
+                </TouchableOpacity>
+              </View>
+
+              <Text style={{ color: "#9CA3AF", fontSize: 12, marginBottom: 12 }}>
+                {batchScope === "month"
+                  ? "Mostrando facturas pendientes con fecha de este mes."
+                  : "Mostrando todas las facturas pendientes sin enviar."}
+              </Text>
+
+              <View
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "flex-end",
+                  marginBottom: 8,
+                  gap: 16,
+                }}
+              >
+                <TouchableOpacity onPress={handleSelectAllInScope}>
+                  <Text style={{ color: "#60A5FA", fontSize: 12, fontWeight: "500" }}>
+                    Seleccionar todas
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={handleClearSelection}>
+                  <Text style={{ color: "#9CA3AF", fontSize: 12 }}>
+                    Vaciar selección
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView style={{ maxHeight: 260 }}>
+                {scopeInvoices.map((inv) => {
+                  const selected = selectedInvoiceIds.includes(inv.id);
+                  return (
+                    <TouchableOpacity
+                      key={inv.id}
+                      onPress={() => toggleInvoiceSelection(inv.id)}
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        paddingVertical: 10,
+                        borderBottomWidth: 1,
+                        borderBottomColor: "#111827",
+                      }}
+                    >
+                      <Ionicons
+                        name={selected ? "checkbox" : "square-outline"}
+                        size={18}
+                        color={selected ? "#22CC88" : "#6B7280"}
+                        style={{ marginRight: 10 }}
+                      />
+                      <View style={{ flex: 1 }}>
+                        <Text
+                          style={{ color: "#E5E7EB", fontSize: 13 }}
+                          numberOfLines={1}
+                        >
+                          {(inv.supplier || "Sin proveedor") + " · " + (inv.amount || "0.00 EUR")}
+                        </Text>
+                        <Text style={{ color: "#6B7280", fontSize: 11 }}>
+                          {inv.date} {inv.invoice_number ? `· Nº ${inv.invoice_number}` : ""}
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+                {scopeInvoices.length === 0 && (
+                  <Text
+                    style={{
+                      color: "#6B7280",
+                      fontSize: 12,
+                      textAlign: "center",
+                      marginTop: 16,
+                    }}
+                  >
+                    No hay facturas pendientes en este ámbito.
+                  </Text>
+                )}
+              </ScrollView>
+
+              <View style={{ flexDirection: "row", gap: 12, marginTop: 16 }}>
+                <TouchableOpacity
+                  onPress={() => setSelectionModalVisible(false)}
+                  style={{
+                    flex: 1,
+                    backgroundColor: "#111827",
+                    borderRadius: 999,
+                    paddingVertical: 12,
+                    alignItems: "center",
+                  }}
+                >
+                  <Text style={{ color: "#E5E7EB", fontSize: 13, fontWeight: "600" }}>
+                    Cancelar
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={handleConfirmBatchSend}
+                  style={{
+                    flex: 1,
+                    backgroundColor: "#22CC88",
+                    borderRadius: 999,
+                    paddingVertical: 12,
+                    alignItems: "center",
+                    opacity: selectedInvoiceIds.length === 0 ? 0.6 : 1,
+                  }}
+                  disabled={selectedInvoiceIds.length === 0}
+                >
+                  <Text style={{ color: "#022c22", fontSize: 13, fontWeight: "600" }}>
+                    Enviar seleccionadas ({selectedInvoiceIds.length})
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      )}
     </View>
   );
 }

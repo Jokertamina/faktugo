@@ -66,6 +66,12 @@ export default function EmailAliasCard() {
   }, []);
 
   async function handleToggleChange(next: boolean) {
+    // No permitir activar el autoenvío si no hay email de gestoria configurado
+    if (next && !hasGestoriaEmail) {
+      setError("Configura primero el email de tu gestoria en la seccion 'Tu cuenta'.");
+      return;
+    }
+
     if (featureDisabled) {
       setError(
         emailIngestionReason ||

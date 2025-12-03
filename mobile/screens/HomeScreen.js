@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useCallback } from "react";
 import { View, Text, FlatList, TouchableOpacity, Alert, ScrollView, Dimensions } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 import * as ImagePicker from "expo-image-picker";
 import * as FileSystem from "expo-file-system/legacy";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -73,7 +74,14 @@ function chooseInvoicePurpose(hasGestoriaEmail) {
   });
 }
 
-export default function HomeScreen({ navigation, invoices, setInvoices }) {
+export default function HomeScreen({ navigation, invoices, setInvoices, refreshInvoices }) {
+  useFocusEffect(
+    useCallback(() => {
+      if (typeof refreshInvoices === "function") {
+        refreshInvoices();
+      }
+    }, [refreshInvoices])
+  );
   const handleScanDemo = async () => {
     const supabase = getSupabaseClient();
     if (!supabase) {

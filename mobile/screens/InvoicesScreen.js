@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { View, Text, SectionList, TouchableOpacity, TextInput, ScrollView } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
 import { styles } from "../styles";
@@ -93,7 +94,7 @@ function buildSections(invoices, mode) {
     }));
 }
 
-export default function InvoicesScreen({ navigation, route, invoices }) {
+export default function InvoicesScreen({ navigation, route, invoices, refreshInvoices }) {
   const initialFilter = route?.params?.filter || "all";
   const [viewMode, setViewMode] = useState("month"); // "month" | "week"
   const [search, setSearch] = useState("");
@@ -129,6 +130,15 @@ export default function InvoicesScreen({ navigation, route, invoices }) {
       isMounted = false;
     };
   }, []);
+
+  // Refrescar facturas desde el servidor cada vez que la pestaña de Facturas gana foco
+  useFocusEffect(
+    useCallback(() => {
+      if (typeof refreshInvoices === "function") {
+        refreshInvoices();
+      }
+    }, [refreshInvoices])
+  );
 
   const filteredInvoices = Array.isArray(invoices)
     ? invoices.filter((inv) => {

@@ -101,6 +101,7 @@ function MainTabs({ invoices, setInvoices, refreshInvoices }) {
             {...props}
             invoices={invoices}
             setInvoices={setInvoices}
+            refreshInvoices={refreshInvoices}
           />
         )}
       </Tab.Screen>
@@ -112,6 +113,7 @@ function MainTabs({ invoices, setInvoices, refreshInvoices }) {
           <InvoicesScreen
             {...props}
             invoices={invoices}
+            refreshInvoices={refreshInvoices}
           />
         )}
       </Tab.Screen>

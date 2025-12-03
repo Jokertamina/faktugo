@@ -261,6 +261,27 @@ export async function PATCH(request: Request) {
 
     const alias = await getOrCreateEmailAlias(user.id, supabase);
 
+    // No permitir activar autoenvio si no hay email de gestoria configurado
+    if (autoSend) {
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("gestoria_email")
+        .eq("id", user.id)
+        .maybeSingle<{ gestoria_email: string | null }>();
+
+      if (profileError) {
+        console.error("Error al comprobar email de gestoria antes de activar autoenvio:", profileError);
+      }
+
+      const gestoriaEmail = (profile?.gestoria_email ?? "").trim();
+      if (!gestoriaEmail) {
+        return NextResponse.json(
+          { error: "Configura primero el email de tu gestoria antes de activar el envio automatico." },
+          { status: 400 }
+        );
+      }
+    }
+
     const { error: updateError } = await supabase
       .from("profiles")
       .update({ auto_send_ingested_to_gestoria: autoSend })
