@@ -5,7 +5,7 @@ import { NavigationContainer, useNavigationContainerRef } from "@react-navigatio
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { View, Text, BackHandler, Platform, ToastAndroid, Image } from "react-native";
+import { View, Text, BackHandler, Platform, ToastAndroid, Image, ActivityIndicator } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { fetchInvoicesFromSupabase } from "./api";
 import { getSupabaseClient } from "./supabaseClient";
@@ -140,7 +140,6 @@ export default function App() {
   const [user, setUser] = useState(null);
   const navigationRef = useNavigationContainerRef();
   const [lastBackPress, setLastBackPress] = useState(0);
-  const [minSplashDone, setMinSplashDone] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -215,12 +214,6 @@ export default function App() {
     };
   }, [user]);
 
-  // Asegurar que la pantalla de splash se muestre al menos unos milisegundos
-  useEffect(() => {
-    const timer = setTimeout(() => setMinSplashDone(true), 1500);
-    return () => clearTimeout(timer);
-  }, []);
-
   useEffect(() => {
     // Guardar en segundo plano siempre que cambien las facturas
     if (!invoices) return;
@@ -271,30 +264,9 @@ export default function App() {
     };
   }, [navigationRef, lastBackPress]);
 
-  if (isLoading || authChecking || !minSplashDone) {
-    return (
-      <SafeAreaView style={styles.safeArea}>
-        <StatusBar style="light" />
-        <View style={styles.splashContainer}>
-          <Image
-            source={require("./assets/splahs-icon.png")}
-            style={{ width: 96, height: 96, marginBottom: 16 }}
-            resizeMode="contain"
-          />
-          <Text style={styles.splashTitle}>FaktuGo</Text>
-          <Text style={styles.splashSubtitle}>Tus facturas, en piloto automatico</Text>
-          <View style={styles.splashDotsRow}>
-            <View style={styles.splashDot} />
-            <View style={styles.splashDot} />
-            <View style={styles.splashDot} />
-          </View>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
   const supabase = getSupabaseClient();
   const mustAuth = !!supabase && !user;
+  const isBooting = isLoading || authChecking;
 
   return (
     <NavigationContainer ref={navigationRef}>
@@ -320,6 +292,22 @@ export default function App() {
             </RootStack.Screen>
             <RootStack.Screen name="Plans" component={PlansScreen} />
           </RootStack.Navigator>
+        )}
+        {isBooting && (
+          <View
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: "#050816",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <ActivityIndicator size="large" color="#22CC88" />
+          </View>
         )}
       </SafeAreaView>
     </NavigationContainer>

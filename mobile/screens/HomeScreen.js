@@ -376,7 +376,7 @@ export default function HomeScreen({ navigation, invoices, setInvoices, refreshI
         <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 24 }}>
           <View style={{ marginRight: 14 }}>
             <Image
-              source={require("../assets/icon.png")}
+              source={require("../assets/icon1.png")}
               style={{ width: 48, height: 48, borderRadius: 12 }}
               resizeMode="contain"
             />

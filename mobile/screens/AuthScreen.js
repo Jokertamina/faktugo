@@ -163,7 +163,7 @@ export default function AuthScreen() {
       <View style={styles.header}>
         <View style={{ marginRight: 12 }}>
           <Image
-            source={require("../assets/icon.png")}
+            source={require("../assets/icon1.png")}
             style={{ width: 40, height: 40, borderRadius: 12 }}
             resizeMode="contain"
           />

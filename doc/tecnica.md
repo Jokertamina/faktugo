@@ -3,45 +3,38 @@ Documento técnico funcional — FaktuGo
 
 FaktuGo es un ecosistema de aplicaciones (app móvil/tablet + panel web) para digitalizar, clasificar y gestionar facturas y tickets de autónomos y pequeñas empresas.
 
-Características clave:
+Características clave (estado actual):
 
-Escaneo de facturas/tickets con cámara o PDF.
-
-Extracción automática de datos con OCR e IA en el backend.
-
-Clasificación automática por mes o semana según la fecha de la factura.
-
-Creación automática de carpetas lógicas de periodo (mes/semana) que se reflejan en el panel.
-
-Gestión de facturas y metadatos mediante cuenta FaktuGo y conexión a internet.
-
-Sincronización y funciones avanzadas (envío a gestoría, estadísticas, etc.) mediante servicios en la nube.
-
-Integraciones opcionales: Google Drive, otros clouds, envío por email a gestoría.
-
-Panel web opcional para revisar y gestionar facturas desde PC.
+- Captura de facturas y tickets desde la app móvil (cámara) o subida de PDFs/imágenes desde la web.
+- Análisis automático de documentos con IA en el backend (OpenAI + parseo de PDFs) para extraer fecha, proveedor, importe, tipo de documento y una categoría/concepto sugeridos.
+- Clasificación automática de cada factura en un periodo mensual (YYYY-MM) y agrupación visual por mes o semana en las interfaces web y móvil.
+- Creación de un registro único de factura en una base de datos Postgres (Supabase), con metadatos normalizados y ruta al fichero almacenado en el bucket `invoices`.
+- Gestión de facturas y metadatos mediante cuenta FaktuGo y conexión a internet (app móvil + panel web).
+- Funciones avanzadas basadas en la nube: límites por plan, envío a gestoría, recepción por correo interno, detección de duplicados y exportación ZIP.
+- Integración actual con un proveedor de email transaccional (Resend) para:
+  - Envío de facturas a gestoría.
+  - Recepción de facturas en una dirección interna de FaktuGo (alias dedicado por usuario).
+- Panel web para revisar, filtrar y gestionar facturas desde PC, con exportación ZIP y acceso a configuración de cuenta.
 
 2. Filosofía de arquitectura
 2.1 Arquitectura general
 
-La app se apoya en servicios en la nube (principalmente Supabase y el backend de FaktuGo) para:
+La app se apoya en servicios en la nube (principalmente Supabase, el backend Next.js de FaktuGo y proveedores externos como OpenAI y Resend) para:
 
-- Autenticación de usuarios.
-- Procesamiento de documentos (OCR/IA).
-- Almacenamiento de facturas y metadatos.
-- Sincronización entre dispositivos y panel web.
+- Autenticación de usuarios (Supabase Auth).
+- Procesamiento de documentos e IA (análisis de facturas en el backend usando OpenAI y parseo de PDF).
+- Almacenamiento de facturas (bucket `invoices` de Supabase Storage) y metadatos (Postgres).
+- Sincronización entre dispositivos (app móvil) y panel web a partir de una única base de datos central.
 
 Se requiere cuenta FaktuGo y conexión a internet para completar el flujo estándar de escaneo, análisis y guardado de facturas.
 
-2.2 Nube opcional
+2.2 Funciones opcionales sobre la nube
 
-El usuario decide si:
+La base del servicio es siempre online (cuenta + conexión). Sobre esa base, el usuario decide si:
 
-Crea cuenta FaktuGo.
-
-Conecta servicios externos (Drive/Dropbox/OneDrive).
-
-Activa envíos automáticos por email.
+- Configura el email de su gestoría para poder enviarle facturas directamente desde FaktuGo.
+- Activa el correo interno de FaktuGo (alias dedicado) y, opcionalmente, el autoenvío de facturas ingeridas a la gestoría.
+- En el futuro, conecta servicios externos de archivos (Drive/Dropbox/OneDrive) cuando esas integraciones estén disponibles.
 
 2.3 Privacidad
 
@@ -67,11 +60,11 @@ En móvil/tablet se prioriza una buena experiencia de captura y revisión rápid
 
 Arquitectura de referencia (orientativa):
 
-App móvil/tablet: framework cross-platform (por ejemplo Flutter o React Native) con soporte para cámara, almacenamiento local cifrado y sincronización selectiva.
+App móvil/tablet: **React Native + Expo** (TypeScript), con soporte para cámara, almacenamiento local de una copia de trabajo y sincronización con Supabase.
 
-Panel web: SPA/PWA (por ejemplo React/Next.js) que consume la misma API y permite la gestión desde PC sin instalación.
+Panel web: **Next.js** (React + TypeScript) en modo SPA/PWA, que consume la misma API y permite la gestión desde PC sin instalación.
 
-Backend en la nube: API REST/GraphQL + base de datos gestionada (por ejemplo Supabase, Firebase u otra solución equivalente) para cuentas, metadatos, reglas y automatizaciones.
+Backend en la nube: API Routes de Next.js + **Supabase** (Postgres, Auth, Storage) como base de datos y almacenamiento principal, orquestando cuentas, metadatos de facturas, reglas y automatizaciones, además de las integraciones con **OpenAI** (IA de facturas) y **Resend** (email).
 
 3. Roles de usuario
 
@@ -94,59 +87,49 @@ Email con adjuntos/enlaces.
 Opcional: acceso a panel web multi-cliente (futuro).
 
 4. Funcionalidades principales (MVP extendido)
-4.1 Escaneo de facturas
+4.1 Escaneo de facturas (app móvil y web)
 
 Entrada:
 
-Cámara del móvil (foto).
+- App móvil: captura con cámara usando Expo Image Picker.
+- Web: subida de uno o varios archivos desde el navegador (imágenes o PDFs).
 
-Importación de imagen o PDF desde galería/archivos.
+Procesos actuales:
 
-Procesos:
-
-Detección de bordes.
-
-Recorte automático.
-
-Corrección de perspectiva.
-
-Mejora de contraste/blanco y negro.
+- En móvil se realiza una captura sencilla (sin editor avanzado de bordes/perspectiva) con compresión básica para reducir tamaño antes del envío.
+- La app móvil envía el archivo al backend mediante el endpoint `/api/invoices/upload`, indicando además:
+  - `archivalOnly` (solo archivar en FaktuGo, sin marcar como pendiente para gestoría).
+  - `sendToGestoria` (intentar enviar por email a la gestoría en el mismo flujo).
+  - `uploadSource` (`mobile_upload` o `web_upload`).
 
 Salida:
 
-Imagen procesada lista para OCR y guardado.
+- Archivo almacenado en el bucket `invoices` de Supabase Storage.
+- Registro de factura creado en la tabla `invoices` con metadatos iniciales, origen (`upload_source`) y estado.
 
-4.2 OCR y extracción de datos
+4.2 IA y extracción de datos (backend)
 
-Datos a extraer:
+Datos a extraer (cuando es posible):
 
-Fecha de la factura.
+- Fecha de la factura (YYYY-MM-DD).
+- Importe total y moneda.
+- Nombre del proveedor.
+- Concepto/categoría de gasto.
+- Número de factura.
+- Tipo de documento (factura, ticket, proforma, presupuesto, otros).
 
-Importe total.
+Algoritmo real:
 
-Nombre del proveedor.
+- El backend usa la función `analyzeInvoiceFile` (módulo `invoiceAI`) para analizar cada archivo:
+  - Si es PDF, se extrae primero el texto con `pdf-parse` y se analiza con OpenAI (modelo gpt‑4o) como texto estructurado.
+  - Si es imagen, se envía directamente al modelo de visión de OpenAI (gpt‑4o) junto con un prompt que define el esquema de salida.
+- La función `isValidInvoice` verifica que el documento sea una factura/ticket válido y que la confianza del modelo sea suficiente.
+- Si el documento no pasa los criterios, se construye un mensaje legible con `getRejectionReason` y **no** se sube a Storage ni se crea registro en `invoices`.
 
-Algoritmos:
+Corrección y edición:
 
-OCR (motor externo o interno).
-
-Regex y heurísticas para:
-
-Formatos de fecha.
-
-Formatos de importe con € / , / .
-
-Proveedor (títulos grandes, cabeceras).
-
-Corrección:
-
-UI para revisión rápida:
-
-“Fecha detectada: [14/02/2025] ¿Correcto?”
-
-“Importe detectado: [45,60 €]”
-
-El usuario puede editar manualmente.
+- Los datos devueltos por la IA rellenan los campos iniciales de la factura.
+- El usuario puede editar posteriormente fecha, proveedor, categoría y importe tanto desde el panel web como desde la app móvil (pantalla de detalle de factura).
 
 4.3 Clasificación temporal automática
 
@@ -222,21 +205,20 @@ Requiere:
 - Registro y autenticación del usuario.
 - Conexión a internet para completar el flujo de guardado y sincronización.
 
-5. Funciones opcionales con cuenta FaktuGo
+5. Cuenta, autenticación y funciones avanzadas
 
-La cuenta solo se pide cuando el usuario activa funciones avanzadas.
+La cuenta FaktuGo es obligatoria para usar la app móvil y el panel web. En esta sección se detalla cómo funciona la autenticación y qué funciones adicionales dependen del perfil y del plan.
 
 5.1 Cuenta y autenticación
 
-Registro:
+Registro (estado actual):
 
-Email + contraseña.
-
-Opcional: login social (Google, Microsoft).
+- Email + contraseña usando Supabase Auth (misma cuenta en móvil y web).
+- En la app móvil se solicitan además nombre, apellidos, tipo de cuenta (autónomo/empresa), nombre comercial/empresa opcional y país opcional.
 
 Autenticación:
 
-JWT / similar.
+- Gestión de sesión vía Supabase Auth; internamente se usan tokens JWT mantenidos por el SDK oficial.
 
 Datos de cuenta y CRM (mínimos necesarios):
 
@@ -274,19 +256,22 @@ Opciones de baja de comunicaciones comerciales y eliminación de cuenta/datos de
 
 Sincroniza:
 
-Metadatos (ID, fecha, proveedor, importe, categoría, ruta remota/local, flags).
+Metadatos (ID, fecha, proveedor, importe, categoría, ruta lógica de periodo, flags, estado de envío a gestoría, etc.).
 
-No sincroniza (por defecto):
+Documentos asociados a cada factura mediante la ruta en el bucket `invoices` de Supabase Storage.
 
-PDFs/imagenes (están en dispositivo o cloud del usuario).
+Notas:
+
+- La app móvil puede mantener una copia local del fichero en su carpeta privada (sandbox) para acceso más rápido, pero la copia canónica vive en Supabase Storage.
+- El acceso al fichero desde web y móvil se hace mediante URLs firmadas de corta duración generadas por el backend.
 
 Dispositivos:
 
-Móvil ↔ Web ↔ Tablet.
+Móvil Web Tablet (vía navegador o PWA).
 
 Resolución de conflictos:
 
-Última modificación gana o estrategia definida.
+Actualmente se asume que la última edición guardada en la base de datos es la que prevalece (estrategia "última modificación gana").
 
 5.3 Panel web
 
@@ -324,91 +309,75 @@ Total por categoría.
 
 Top proveedores.
 
-6. Integraciones opcionales
-6.1 Integración Google Drive (MVP)
+6. Integraciones con otros servicios
+6.1 Proveedor de email (Resend) — estado actual
 
-Autenticación:
+Proveedor principal: **Resend**.
 
-OAuth2.
+Usos:
 
-Configuración:
+- Envío de facturas a gestoría desde:
+  - Subida manual (web o móvil) cuando el usuario marca `sendToGestoria`.
+  - Envío manual desde el detalle de factura (endpoint `/api/gestoria/send`).
+  - Autoenvío de facturas ingeridas por correo si el usuario tiene activado el flag `auto_send_ingested_to_gestoria`.
+- Recepción de facturas por correo interno FaktuGo:
+  - Cada usuario puede generar un alias tipo `loquesea@subdominio.faktugo...`.
+  - Resend reenvía eventos de email entrante al endpoint `/api/email-ingest/resend`.
+  - El backend descarga los adjuntos desde la API de Resend, los analiza con IA y crea facturas en la cuenta correspondiente.
 
-Seleccionar carpeta raíz en Drive.
+Flujo de ingestión por correo (resumen):
 
-Mantener estructura YYYY-MM o YYYY-SWW.
+1. El usuario obtiene su alias interno desde el panel (`/api/email-alias`).
+2. Cualquier proveedor (Amazon, Uber, suministros, etc.) envía sus facturas a ese alias.
+3. Resend notifica a FaktuGo, que:
+   - Verifica que el alias pertenece a un usuario y que el plan permite **correo interno** (`canUseEmailIngestion`).
+   - Comprueba límites de facturas mensuales (`canUploadInvoice`).
+   - Descarga y analiza cada adjunto con `analyzeInvoiceFile` (OpenAI).
+   - Rechaza documentos que no son facturas válidas y detecta posibles duplicados.
+   - Sube el fichero a `invoices` y crea la fila en la tabla `invoices` con `upload_source = "email_ingest"`.
+4. Si el usuario tiene configurado email de gestoría y autoenvío activo, se dispara un envío automático usando también Resend.
 
-Flujo:
+6.2 Integraciones de almacenamiento (roadmap)
 
-Al guardar localmente una factura:
+Actualmente **no** hay sincronización directa con Google Drive/Dropbox/OneDrive. El roadmap contempla:
 
-Si Drive está activo:
+- Integración Google Drive: seleccionar carpeta raíz, reflejar estructura de periodos y subir allí copias de las facturas.
+- Integraciones adicionales: Dropbox, OneDrive, WebDAV/S3 u otros, siempre como capas opcionales encima del almacenamiento principal en FaktuGo.
 
-Subir archivo a la carpeta correspondiente.
-
-Guardar ruta remota en metadatos.
-
-Errores:
-
-Si falla la subida:
-
-Reintentos.
-
-Marcar factura con estado “pendiente de subir”.
-
-6.2 Otras integraciones (futuro)
-
-Dropbox.
-
-OneDrive.
-
-WebDAV / S3 (opcional).
-
-7. Envío por email a gestoría (opcional)
+7. Envío por email a gestoría
 7.1 Configuración
 
-Campos:
+Campos clave en el perfil de usuario:
 
-Email del usuario (remitente o reply-to).
+- **Email de la gestoría** (`gestoria_email`): destino principal de los envíos.
+- **Autoenvío de facturas ingeridas por correo** (`auto_send_ingested_to_gestoria`): activa el envío automático desde el alias interno.
 
-Email de la gestoría.
+Configuración técnica:
 
-Asunto base (configurable).
+- Dirección de envío configurada en el backend (`GESTORIA_FROM_EMAIL`).
+- Proveedor de envío: Resend (API HTTP).
 
-Mensaje base (texto editable).
+7.2 Modos de envío actuales
 
-Opciones:
-
-Adjuntar PDFs.
-
-Enviar solo enlaces (si se usan Drive/Dropbox).
-
-7.2 Modos de envío
-
-Manual:
-
-Botón “Enviar a gestoría”.
-
-Seleccionar rango temporal o facturas pendientes.
-
-Automático programado:
-
-Cada viernes a X hora.
-
-Primer día de cada mes.
-
-Al insertar una nueva factura (envío inmediato).
-
-Enviar solo facturas con flag “no enviada”.
+- **Manual desde detalle de factura (web y móvil)**:
+  - Acción explícita del usuario sobre una factura concreta (endpoint `/api/gestoria/send`).
+- **Durante la subida manual** (web/móvil):
+  - El usuario puede elegir "Subir y enviar a gestoría"; el backend adjunta la factura al correo en el mismo flujo de subida.
+- **Automático desde el alias de correo interno** (si está activado):
+  - Cada factura válida ingerida por correo se puede reenviar automáticamente a la gestoría si se cumplen:
+    - Alias activo.
+    - `auto_send_ingested_to_gestoria = true`.
+    - Email de gestoría configurado.
+    - El plan del usuario permite envío a gestoría (`canSendToGestoria`).
 
 7.3 Estado de envío
 
-Campos por factura:
+Campos por factura (tabla `invoices`):
 
-subida_cloud: boolean
-
-enviada_gestoria: boolean
-
-fecha_envio: datetime
+- `status`: "Pendiente", "Enviada" o "Archivada" (vista de usuario).
+- `sent_to_gestoria_status`: `pending | sent | failed | null`.
+- `sent_to_gestoria_at`: fecha/hora del último intento de envío.
+- `sent_to_gestoria_message_id`: identificador devuelto por Resend.
 
 8. Funcionalidades avanzadas (diferenciación)
 
@@ -576,7 +545,7 @@ HTTPS/TLS para todo tráfico con servidores FaktuGo.
 
 App móvil:
 
-Opción bloqueo con PIN/biométrico (FaceID/huella).
+Opción bloqueo con PIN/biométrico (FaceID/huella) para proteger el acceso a la app.
 
 Datos en servidor:
 
@@ -590,48 +559,31 @@ Tokens OAuth almacenados de forma segura.
 
 Privacidad:
 
-PDFs principalmente en almacenamiento local o cloud del usuario.
+PDFs e imágenes de facturas almacenados principalmente en Supabase Storage (infraestructura cloud de FaktuGo). En el roadmap se contempla, de forma opcional, sincronizar copias a clouds del usuario (Drive, etc.) mediante integraciones externas.
 
 11. Roadmap propuesto (alto nivel)
-Versión 1.0 (MVP sólido)
+Versión 1.x — Estado actual
 
-App móvil Local-First.
+- App móvil Expo (React Native) conectada a Supabase.
+- Panel web Next.js con listado de facturas, filtros y detalle.
+- Subida de facturas desde móvil y web.
+- Recepción de facturas por correo interno (alias) con análisis IA.
+- Envío de facturas a gestoría (manual y automático al subir/ingerir).
+- Gestión de planes y límites (free/básico/pro) desde panel admin.
+- Exportación de todas las facturas en un ZIP desde el panel.
 
-Escaneo + OCR básico.
+Versión 2.x — Automatizaciones y producto gestoría
 
-Clasificación mensual/semanal.
+- Estadísticas más avanzadas por categorías/periodos.
+- Reglas de categorización más ricas y editables por usuario.
+- Búsqueda avanzada por texto, proveedor e importes.
+- Mejoras en flujos de envío a gestoría (lotes, plantillas de email, etc.).
 
-Estructura de carpetas automáticas.
+Versión 3.x — Integraciones y multiempresa
 
-Drive opcional.
-
-Email manual opcional.
-
-Sincronización mínima + panel web básico (si se decide).
-
-Versión 2.0
-
-Cuenta FaktuGo refinada.
-
-Email automático programado.
-
-Panel web con filtros y estadísticas básicas.
-
-Categorías por proveedor.
-
-Detección de duplicados.
-
-Export ZIP.
-
-Versión 3.0
-
-Integraciones adicionales (Dropbox, OneDrive).
-
-Reconocimiento IVA/bases.
-
-API para gestorías.
-
-Flujo empresa–gestoría (comentarios, estados).
+- Integraciones adicionales con clouds de archivos (Drive/Dropbox/OneDrive).
+- API para gestorías y modo multiempresa.
+- Panel multi-cliente para asesorías con estados y comentarios estructurados.
 
 12. Stack tecnológico recomendado
 
@@ -641,13 +593,13 @@ El objetivo es maximizar productividad, calidad y mantenibilidad usando tecnolog
 
 Componentes principales:
 
-App móvil/tablet: React Native + Expo (TypeScript).
+App móvil/tablet: **React Native + Expo** (TypeScript).
 
-Panel web/PWA: Next.js (React + TypeScript).
+Panel web/PWA: **Next.js** (React + TypeScript).
 
-Backend/BaaS: Supabase (Postgres gestionado, Auth, Storage, Edge Functions) como base, complementado si es necesario con APIs propias.
+Backend/BaaS: **Supabase** (Postgres gestionado, Auth, Storage, Edge Functions) como base, complementado con APIs propias en Next.js cuando es necesario.
 
-Integraciones externas: APIs de Google Drive y proveedores de email (por ejemplo, SendGrid) gestionadas desde el backend.
+Integraciones externas: proveedor de email transaccional **Resend** (estado actual) y, en el roadmap, APIs de Google Drive u otros storages gestionadas desde el backend.
 
 12.2 App móvil/tablet — React Native + Expo
 
@@ -727,78 +679,175 @@ Monitorización básica de errores en producción (por ejemplo, Sentry) en app m
 
 13.1 App móvil/tablet
 
-Pantallas principales:
+Pantallas principales (estado actual en la app Expo):
 
-Inicio / Dashboard rápido: accesos a "Escanear", últimas facturas y resumen del periodo actual.
+- Pantalla de autenticación (Auth): login y registro con email y contraseña usando Supabase Auth. En el alta desde móvil se piden nombre, apellidos, tipo de cuenta (autónomo/empresa), nombre comercial/empresa opcional y país opcional, además de la aceptación de términos y privacidad.
 
-Flujo de escaneo: cámara, revisión de recorte y filtros de imagen.
+- Inicio / Home (tab "Inicio"): accesos rápidos a "Escanear", listado resumido de últimas facturas y acciones para refrescar datos desde el backend.
 
-Pantalla de revisión de datos OCR: fecha, importe, proveedor, categoría y carpeta objetivo.
+- Lista de facturas (tab "Facturas"): listado de facturas con búsqueda y filtros por periodo (mes/semana), proveedor y estado, con navegación al detalle.
 
-Lista de facturas: búsqueda básica, filtros por mes/semana y estado de envío (enviada/no enviada, subida/no subida).
+- Detalle de factura: vista del documento (imagen o PDF mediante URL firmada), edición de metadatos básicos (fecha, proveedor, categoría, importe) y acciones (enviar a gestoría, eliminar).
 
-Detalle de factura: vista del documento, edición de metadatos y acciones (enviar, mover, eliminar, marcar como revisada).
+- Conexiones (tab "Conexiones"): muestra el correo interno FaktuGo (alias) cuando está activo, indica si el plan permite la ingestión por email y permite copiar el alias. Incluye acciones de envío masivo de facturas pendientes a la gestoría (por mes actual o todas), con selección individual de facturas y seguimiento de progreso.
 
-Configuración: opciones de carpeta raíz, modo mensual/semanal, idioma futuro, ajustes de privacidad/local-first y conexión con cuenta FaktuGo.
+- Cuenta (tab "Cuenta"): acceso a ajustes de cuenta básicos en móvil y navegación hacia información de planes y suscripción (complementados desde el panel web).
+
+Configuración: los detalles de preferencias de agrupación (mes/semana), correo de la gestoría y opciones de plan se gestionan principalmente desde el panel web, aunque ciertas opciones se reflejan también en la app móvil.
 
 13.2 Panel web (PC, portátil y navegador)
 
-Pantallas principales:
+Pantallas principales (estado actual):
 
-Inicio con resumen de gasto por mes, categorías y avisos (facturas pendientes de enviar, errores de OCR, pendientes de subir a Drive).
+- Dashboard / Inicio: resumen de gasto por mes y categorías, número de facturas, top proveedores y últimos documentos, además de accesos rápidos a listados y acciones clave (basado en la página `/dashboard`).
 
-Listado avanzado de facturas con filtros combinados (fecha, proveedor, importe, categoría, estado, empresa).
+- Listado de facturas: vista avanzada con filtros combinados (fecha/periodo, proveedor, categoría, estado, búsqueda por texto) y enlaces a detalle de factura, permitiendo editar metadatos y consultar el historial de envío a gestoría.
 
-Vista multi-empresa para usuarios con varias actividades/autónomos con varias marcas.
+- Configuración de cuenta: gestión de suscripción y planes, configuración del email de la gestoría, exportación ZIP de todas las facturas de la cuenta y, en su caso, eliminación de cuenta y datos asociados.
 
-Gestor de exportaciones: selección de periodo, previsualización y descarga/ZIP o envío directo a gestoría.
+Elementos en roadmap (no implementados aún):
 
-Centro de integraciones: Drive, email, automatizaciones y configuración de tokens.
+- Vista multi-empresa para usuarios con varias actividades/autónomos con varias marcas.
+- Gestor de exportaciones por periodo (selección de mes/semana concreta, previsualización y descarga/ZIP o envío directo a gestoría en bloque).
+- Centro de integraciones (Drive, otros storages y automatizaciones avanzadas) con gestión de tokens.
 
-13.3 Modo gestoría
+13.3 Modo gestoría (roadmap)
 
-Pantallas principales:
+Pantallas principales previstas:
 
-Lista de clientes con estado general (documentación completa/incompleta, incidencias abiertas).
+- Lista de clientes con estado general (documentación completa/incompleta, incidencias abiertas).
 
-Vista por cliente: facturas por periodo, indicadores de revisión y comentarios.
+- Vista por cliente: facturas por periodo, indicadores de revisión y comentarios.
 
-Panel de tareas/incidencias: facturas con observaciones o documentación pendiente.
+- Panel de tareas/incidencias: facturas con observaciones o documentación pendiente.
 
 14. Plan de implementación por fases
 
-14.1 Fase 1 — MVP Local-First
+14.1 Fase 1 — MVP cloud (completada)
 
-Objetivo: validar el uso diario de la app móvil sin depender de la nube.
-
-Alcance:
-
-App móvil con escaneo, OCR básico y clasificación mensual/semanal en carpetas locales.
-
-Generación de nombres de archivo estándar y estructura de carpetas.
-
-Pantalla de listado y búsqueda simple en móvil.
-
-14.2 Fase 2 — Cuenta FaktuGo y sincronización mínima
-
-Objetivo: habilitar cuenta de usuario y metadatos en la nube.
+Objetivo: validar el uso diario con app móvil + panel web conectados a la nube.
 
 Alcance:
 
-Registro/login con Supabase Auth.
+- Subida de facturas desde móvil y web.
+- Análisis IA en el backend y creación de facturas en Supabase.
+- Listado y detalle de facturas en el panel web.
+- Exportación ZIP de todas las facturas.
 
-Sincronización de metadatos entre app móvil y panel web básico.
+14.2 Fase 2 — Automatizaciones y gestoría (en curso)
 
-Activación de integraciones con Drive y envío manual de emails a gestoría desde el panel web.
-
-14.3 Fase 3 — Automatizaciones y modo gestoría
-
-Objetivo: diferenciar el producto con automatizaciones avanzadas.
+Objetivo: reducir trabajo manual en el envío y clasificación.
 
 Alcance:
 
-Reglas de categorías por proveedor, detección de duplicados y recordatorios inteligentes.
+- Alias de correo interno y ingestión automática de facturas.
+- Envío manual y automático a gestoría.
+- Límites y planes de suscripción.
 
-Envíos automáticos programados a gestoría y exportaciones ZIP automáticas.
+14.3 Fase 3 — Integraciones externas y multiempresa (roadmap)
 
-Panel web multi-cliente para gestorías con estados y comentarios por factura.
+Objetivo: conectar FaktuGo con más herramientas y soportar escenarios más complejos.
+
+Alcance:
+
+- Integraciones con clouds externos (Drive/Dropbox/OneDrive).
+- Modo multiempresa y panel avanzado para gestorías.
+- Automatizaciones adicionales (recordatorios, reglas, etc.).
+
+15. Planes, precios y qué incluye cada plan
+
+15.1 Modelo técnico de planes
+
+Los planes de suscripción se modelan en la tabla `plans` de Supabase y se exponen a móvil/web mediante el endpoint público `/api/plans`.
+
+Campos principales de la tabla `plans`:
+
+- `id`: identificador interno del plan (ej.: `free`, `basico`, `pro`).
+- `display_name`: nombre visible del plan (ej.: "Gratuito", "Básico", "Pro").
+- `description`: descripción corta que se muestra en la página de precios y en la app móvil.
+- `invoices_per_month`: límite de facturas/mes que el plan permite antes de bloquear nuevas subidas (usado por `canUploadInvoice`).
+- `can_send_gestoria`: si el plan permite o no enviar facturas a la gestoría (usado por `canSendToGestoria`).
+- `can_use_email_ingestion`: si el plan permite o no usar el correo interno FaktuGo (alias) para ingerir facturas por email (usado por `canUseEmailIngestion`).
+- `price_monthly_cents`: precio mensual en céntimos de euro. Se transforma a €/mes en:
+  - Página web de precios (`/pricing`), vía `/api/plans`.
+  - App móvil (pantalla "Planes").
+- `stripe_price_id`: identificador del precio en Stripe asociado a ese plan.
+- `is_active`: indica si el plan está disponible para nuevos clientes.
+- `sort_order`: orden de aparición en las interfaces.
+- `features`: lista de textos cortos que resumen las características comerciales del plan (lo que se enseña en web/app).
+
+A partir de estos datos, la capa de negocio construye:
+
+- Un objeto `PlanConfig` por plan (en `src/lib/subscription.ts`).
+- Un objeto `PlanLimits` con los límites efectivos (`invoicesPerMonth`, `canSendToGestoria`, `canUseEmailIngestion`).
+- Un `SubscriptionStatus` por usuario, que indica su plan actual y el estado de factura de Stripe.
+
+Los precios finales para el usuario se gestionan en Stripe y en la tabla `plans`; el documento no fija valores concretos salvo el caso del plan gratuito.
+
+15.2 Plan gratuito (Free / Gratuito)
+
+Características generales del plan gratuito (basado en el `FALLBACK_FREE_PLAN` y en la lógica actual):
+
+- **Precio**: 0 €/mes.
+- **Límite de facturas/mes**:
+  - Valor leído de `invoices_per_month` en la tabla `plans`.
+  - Si por algún motivo no hubiera planes configurados en BD, el backend aplica un fallback mínimo de 5 facturas/mes.
+- **Envío a gestoría**:
+  - `can_send_gestoria = false` (no debería permitir envío a gestoría en el plan gratuito).
+  - Si el usuario intenta enviar, `canSendToGestoria` devuelve un mensaje indicando que la función no está incluida y sugiere actualizar a un plan de pago.
+- **Correo interno FaktuGo (alias email)**:
+  - `can_use_email_ingestion = false` en el plan gratuito.
+  - En la app móvil (pantalla Conexiones) se muestra un aviso indicando que esta función no está disponible en el plan free.
+- **Casos de uso típicos**:
+  - Prueba del producto.
+  - Autónomos con muy poco volumen de facturas/mes que quieren evaluar el flujo de captura + IA + panel web.
+
+15.3 Planes de pago (Básico, Pro y otros)
+
+Además del plan gratuito, la tabla `plans` permite configurar uno o varios planes de pago (por defecto se contempla al menos un plan "Básico" y uno "Pro"). Todos ellos comparten la misma estructura de campos, variando solo los valores.
+
+Ejes principales de diferenciación:
+
+- **Precio mensual (`price_monthly_cents`)**:
+  - Se define en céntimos en la tabla `plans` y se sincroniza con un `price` de Stripe (`stripe_price_id`).
+  - La página `/pricing` muestra el precio ya formateado en €/mes.
+  - La app móvil (pantalla "Planes") consume el mismo endpoint `/api/plans` y muestra también el precio mensual.
+
+- **Límite de facturas/mes (`invoices_per_month`)**:
+  - Los planes de pago deben tener un límite de facturas/mes superior al gratuito.
+  - Este límite se aplica en `canUploadInvoice`, que bloquea nuevas subidas cuando el usuario ha alcanzado el máximo de su plan.
+
+- **Envío a gestoría (`can_send_gestoria`)**:
+  - Al menos uno de los planes de pago habilita el envío a gestoría (`can_send_gestoria = true`).
+  - Esta bandera controla tanto el envío manual desde el detalle de factura como el envío masivo desde la pantalla Conexiones y el autoenvío desde el alias interno.
+
+- **Correo interno FaktuGo / ingestión por email (`can_use_email_ingestion`)**:
+  - Al menos uno de los planes de pago habilita el uso del alias de correo interno (`can_use_email_ingestion = true`).
+  - Cuando está activo, el endpoint `/api/email-alias` devuelve un alias válido y la pantalla Conexiones lo muestra como "ACTIVO".
+
+- **Lista de características (`features`)**:
+  - Cada plan puede listar textos como "Hasta X facturas/mes", "Envío a gestoría incluido", "Correo interno para facturas", etc.
+  - Esta lista se usa tanto en la web (`/pricing`) como en la pantalla "Planes" de la app móvil para explicar rápidamente qué incluye cada plan.
+
+Ejemplo de posicionamiento (orientativo, configurable desde el panel admin de planes):
+
+- **Básico**: pensado para autónomos y pequeños negocios con volumen moderado de facturas al mes. Suele incluir:
+  - Más facturas/mes que el plan gratuito.
+  - Envío a gestoría habilitado.
+  - Sin o con limitaciones en el correo interno según se decida a nivel de producto.
+
+- **Pro**: orientado a usuarios con mayor volumen o a pequeños equipos que necesitan automatizar al máximo.
+  - Límite de facturas/mes claramente superior al plan Básico.
+  - Envío a gestoría habilitado.
+  - Correo interno FaktuGo habilitado para ingestión automática de facturas.
+  - Más características en el array `features` (prioridad, soporte, automatizaciones, etc.).
+
+15.4 Gestión de precios y suscripciones (Stripe)
+
+- Los precios reales que ve el usuario se gestionan en **Stripe** a través de `price` objects asociados a cada plan (`stripe_price_id`).
+- La web y la app crean sesiones de pago o portales de gestión de suscripción llamando a los endpoints:
+  - `/api/stripe/checkout` para iniciar una nueva suscripción o cambiar de plan.
+  - `/api/stripe/portal` para que el usuario gestione su suscripción (cambios, cancelaciones, método de pago, etc.).
+- La tabla `subscriptions` en Supabase guarda el `plan_name`, el `status` y el `current_period_end`, que luego se combinan con `PlanConfig` para obtener los límites efectivos de cada usuario.
+
+Esta sección sirve como referencia de alto nivel: los valores concretos de precios y límites se ajustan desde el panel admin de planes y en Stripe, sin necesidad de cambiar el código.
