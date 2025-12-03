@@ -38,7 +38,7 @@ export default async function LoginPage() {
             <ul className="mt-2 space-y-2 text-sm text-slate-300">
               <li>• Sesiones seguras con Supabase Auth.</li>
               <li>• Preparado para multiempresa y próximamente panel para gestorías.</li>
-              <li>• Enfoque Local-First: solo se sincronizan metadatos necesarios.</li>
+              <li>• Sincronización en la nube para acceder a tus facturas desde todos tus dispositivos.</li>
             </ul>
           </section>
 

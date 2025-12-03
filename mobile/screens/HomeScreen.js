@@ -214,7 +214,7 @@ export default function HomeScreen({ navigation, invoices, setInvoices, refreshI
       })();
       const fileName = `${id}${ext}`;
 
-      // Local-First: copiar la imagen a una carpeta real bajo documentDirectory,
+      // Copiar la imagen a una carpeta propia bajo documentDirectory,
       // siguiendo folder_path (ej. /FaktuGo/2025-11) y usar esa ruta como imageUri.
       let localImageUri = asset.uri;
       try {

@@ -63,8 +63,8 @@ export default function ComoFuncionaPage() {
                 4. Sincroniza (opcional)
               </p>
               <p className="mt-2 text-sm">
-                Si activas la cuenta FaktuGo, sincroniza metadatos entre móvil, web y tablet usando
-                Supabase sin dejar de ser Local-First.
+                Si activas la cuenta FaktuGo, sincroniza tus facturas y metadatos entre móvil, web y
+                tablet usando Supabase para que puedas acceder a todo desde distintos dispositivos.
               </p>
             </li>
             <li className="rounded-2xl border border-slate-800 bg-[#0B1220] p-4">

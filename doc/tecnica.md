@@ -1,50 +1,37 @@
 Documento técnico funcional — FaktuGo
 1. Descripción general del producto
 
-FaktuGo es un ecosistema de aplicaciones Local-First (app móvil/tablet + panel web) para digitalizar, clasificar y gestionar facturas y tickets de autónomos y pequeñas empresas.
+FaktuGo es un ecosistema de aplicaciones (app móvil/tablet + panel web) para digitalizar, clasificar y gestionar facturas y tickets de autónomos y pequeñas empresas.
 
 Características clave:
 
 Escaneo de facturas/tickets con cámara o PDF.
 
-Extracción automática de datos con OCR.
+Extracción automática de datos con OCR e IA en el backend.
 
 Clasificación automática por mes o semana según la fecha de la factura.
 
-Creación automática de carpetas (mes/semana).
+Creación automática de carpetas lógicas de periodo (mes/semana) que se reflejan en el panel.
 
-Funcionamiento completo sin registro y sin conexión (modo local).
+Gestión de facturas y metadatos mediante cuenta FaktuGo y conexión a internet.
 
-Sincronización y funciones avanzadas mediante cuenta opcional.
+Sincronización y funciones avanzadas (envío a gestoría, estadísticas, etc.) mediante servicios en la nube.
 
 Integraciones opcionales: Google Drive, otros clouds, envío por email a gestoría.
 
 Panel web opcional para revisar y gestionar facturas desde PC.
 
 2. Filosofía de arquitectura
-2.1 Local-First
+2.1 Arquitectura general
 
-La app debe ser totalmente funcional sin registro:
+La app se apoya en servicios en la nube (principalmente Supabase y el backend de FaktuGo) para:
 
-Escanear.
+- Autenticación de usuarios.
+- Procesamiento de documentos (OCR/IA).
+- Almacenamiento de facturas y metadatos.
+- Sincronización entre dispositivos y panel web.
 
-Extraer datos.
-
-Clasificar.
-
-Guardar en sistema de archivos local.
-
-No es obligatorio subir nada a servidores de FaktuGo.
-
-La nube se usa solo para:
-
-Metadatos.
-
-Sincronización.
-
-Automatizaciones.
-
-Panel web.
+Se requiere cuenta FaktuGo y conexión a internet para completar el flujo estándar de escaneo, análisis y guardado de facturas.
 
 2.2 Nube opcional
 
@@ -58,13 +45,9 @@ Activa envíos automáticos por email.
 
 2.3 Privacidad
 
-Los PDFs/imágenes no se guardan en servidores de FaktuGo.
+Los PDFs/imágenes y sus metadatos se almacenan y procesan en la infraestructura de FaktuGo (Supabase + almacenamiento asociado) de acuerdo con la política de privacidad y el aviso legal del producto.
 
-Solo se almacenan en:
-
-Dispositivo del usuario.
-
-Servicios cloud del usuario (Drive, etc.).
+El usuario puede exportar sus datos (por ejemplo, ZIP de facturas) y eliminar su cuenta, lo que implica también la eliminación de los datos asociados en los sistemas de FaktuGo.
 
 2.4 Plataformas y despliegue sin instalación en PC
 
@@ -80,7 +63,7 @@ No se distribuyen ejecutables .exe ni instaladores de escritorio propios para ev
 
 En escritorio, el acceso se realiza siempre vía navegador (URL segura HTTPS) o instalación como PWA, sin necesidad de permisos especiales del sistema operativo.
 
-Se mantiene el enfoque Local-First en móvil/tablet: los PDFs se guardan en el dispositivo o en el cloud del usuario; el backend solo gestiona metadatos y automatizaciones.
+En móvil/tablet se prioriza una buena experiencia de captura y revisión rápida; los documentos se procesan y almacenan a través de la infraestructura de FaktuGo y, cuando sea necesario, pueden existir copias locales temporales para mejorar la experiencia de usuario.
 
 Arquitectura de referencia (orientativa):
 
@@ -96,9 +79,9 @@ Usuario estándar (autónomo / pyme)
 
 Usa la app móvil.
 
-Puede usar solo modo local.
+Accede con su cuenta FaktuGo.
 
-Opcional: cuenta + panel web.
+Puede utilizar también el panel web vinculado a esa misma cuenta.
 
 Gestoría
 
@@ -193,7 +176,7 @@ Si la carpeta no existe:
 
 La app la crea automáticamente.
 
-4.4 Estructura de carpetas (modo local)
+4.4 Estructura de carpetas (modo nube)
 
 Carpeta raíz:
 
@@ -225,27 +208,19 @@ Formato de archivo por defecto:
 YYYY-MM-DD_Proveedor_Importe.pdf
 Ejemplo: 2025-02-14_REPSOL_45,60EUR.pdf.
 
-4.5 Funcionamiento por defecto (sin cuenta, sin nube, sin email)
+4.5 Funcionamiento por defecto (con cuenta FaktuGo y servicios en la nube)
 
 La app:
 
-Escanea.
+- Escanea la factura o ticket desde el móvil.
+- Envía el documento y los datos necesarios al backend de FaktuGo para su análisis.
+- Extrae y guarda metadatos (fecha, importe, proveedor, estado) en la base de datos en la nube.
+- Clasifica la factura en el periodo correcto (mes/semana) y la hace visible en el panel y en la app.
 
-Extrae datos.
+Requiere:
 
-Clasifica.
-
-Crea carpetas mes/semana.
-
-Guarda archivos localmente.
-
-No requiere:
-
-Registro.
-
-Conexión a internet.
-
-Servicios externos.
+- Registro y autenticación del usuario.
+- Conexión a internet para completar el flujo de guardado y sincronización.
 
 5. Funciones opcionales con cuenta FaktuGo
 

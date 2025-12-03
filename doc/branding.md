@@ -74,9 +74,9 @@ Sin complicaciones, sin contabilidad, sin pasos innecesarios.
 
 Carpetas automáticas, OCR, subida a Drive opcional, envíos automáticos.
 
-✔ Privacidad Local-First
+✔ Privacidad y control de datos
 
-Tus facturas son tuyas. Todo funciona sin internet.
+Tus facturas son tuyas. Controlas qué documentos subes, durante cuánto tiempo se conservan y cómo se comparten con tu gestoría.
 
 4. Slogan Principal
 
@@ -200,7 +200,7 @@ Sube todo a Drive si quieres.
 
 Comparte con tu gestoría automáticamente.
 
-Funciona incluso sin internet.
+Funciona con sincronización en la nube.
 
 Organiza tus documentos como una empresa grande.
 
@@ -215,7 +215,7 @@ Sin errores.
 
 8. Texto SEO (para Google)
 
-FaktuGo es la aplicación más rápida y sencilla para digitalizar, organizar y clasificar facturas automáticamente. Ideal para autónomos y pequeñas empresas, detecta fecha, proveedor e importe mediante OCR y coloca cada documento en su carpeta mensual o semanal. Funciona sin registro y sin internet, pero permite sincronizar con Google Drive y enviar todo a la gestoría de forma automática. Ahorra tiempo, elimina errores y lleva la organización de tu negocio al siguiente nivel.
+FaktuGo es la aplicación más rápida y sencilla para digitalizar, organizar y clasificar facturas automáticamente. Ideal para autónomos y pequeñas empresas, detecta fecha, proveedor e importe mediante OCR y coloca cada documento en su carpeta mensual o semanal. Funciona con sincronización en la nube y permite enviar todo a la gestoría de forma automática. Ahorra tiempo, elimina errores y lleva la organización de tu negocio al siguiente nivel.
 
 9. Elevator Pitch
 
@@ -223,7 +223,7 @@ FaktuGo es la aplicación más rápida y sencilla para digitalizar, organizar y 
 
 10. Pitch comercial
 
-"¿Pierdes tiempo escaneando y clasificando facturas? Con FaktuGo solo haces una foto y todo se organiza solo. Es la forma más sencilla, rápida y segura de mantener tu negocio al día. Funciona sin internet y sin registro, pero si quieres más, puedes activar sincronización, Drive o envíos automáticos. Perfecto para autónomos, pymes y gestorías."
+"¿Pierdes tiempo escaneando y clasificando facturas? Con FaktuGo solo haces una foto y todo se organiza solo. Es la forma más sencilla, rápida y segura de mantener tu negocio al día, con sincronización en la nube y envíos automáticos cuando los necesitas. Perfecto para autónomos, pymes y gestorías."
 
 11. Landing Page – Estructura oficial
 Sección 1 — Hero
@@ -245,7 +245,7 @@ Flexible
 Drive, email y sincronización opcionales.
 
 Privado
-Local-first. Tus datos son tuyos.
+Tus datos son tuyos. Se almacenan y procesan de forma segura siguiendo la política de privacidad de FaktuGo.
 
 Sección 3 — Cómo funciona
 

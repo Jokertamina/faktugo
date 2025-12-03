@@ -95,18 +95,23 @@ export default function AdminPlansPage() {
 
       {/* Plans Grid - Responsive */}
       <div className="space-y-4">
-        {plans.map((plan) => (
-          <PlanCard
-            key={plan.id}
-            plan={plan}
-            isEditing={editingPlan?.id === plan.id}
-            isSaving={saving === plan.id}
-            onEdit={() => setEditingPlan(plan)}
-            onCancel={() => setEditingPlan(null)}
-            onSave={(updated) => savePlan(updated)}
-            onChange={(updated) => setEditingPlan(updated)}
-          />
-        ))}
+        {plans.map((plan) => {
+          const effectivePlan =
+            editingPlan && editingPlan.id === plan.id ? editingPlan : plan;
+
+          return (
+            <PlanCard
+              key={plan.id}
+              plan={effectivePlan}
+              isEditing={editingPlan?.id === plan.id}
+              isSaving={saving === plan.id}
+              onEdit={() => setEditingPlan(plan)}
+              onCancel={() => setEditingPlan(null)}
+              onSave={(updated) => savePlan(updated)}
+              onChange={(updated) => setEditingPlan(updated)}
+            />
+          );
+        })}
       </div>
     </div>
   );

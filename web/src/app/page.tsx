@@ -40,7 +40,7 @@ export default async function Home() {
           <div className="flex-1 space-y-8">
             <div className="inline-flex items-center gap-2 rounded-full bg-white/5 px-3 py-1 text-xs font-medium text-slate-200 ring-1 ring-slate-700/70">
               <span className="h-1.5 w-1.5 rounded-full bg-[#22CC88]" />
-              <span>Local First · Móvil + Web · Privacidad</span>
+              <span>Móvil + Web · Automatización · Privacidad</span>
             </div>
             <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl lg:text-6xl">
               Tus facturas, en piloto automático.
@@ -78,8 +78,8 @@ export default async function Home() {
                 </dd>
               </div>
               <div>
-                <dt className="font-semibold text-slate-50">Privacidad Local-First</dt>
-                <dd>Tus facturas son tuyas. Todo funciona sin internet ni registro obligatorio.</dd>
+                <dt className="font-semibold text-slate-50">Privacidad y control de datos</dt>
+                <dd>Tus facturas son tuyas. Controlas qué documentos subes y cómo se comparten con tu gestoría.</dd>
               </div>
             </dl>
           </div>
@@ -105,15 +105,15 @@ export default async function Home() {
             <div className="rounded-2xl border border-slate-800 bg-[#0B1220] p-4">
               <h3 className="text-sm font-semibold text-slate-50">Flexible</h3>
               <p className="mt-2 text-sm text-slate-300">
-                Drive, email y sincronización son opcionales. Puedes usar solo el modo local o
-                activar la nube cuando la necesites.
+                Drive, email y sincronización con la nube son opcionales. Empieza con lo básico y
+                añade integraciones cuando las necesites.
               </p>
             </div>
             <div className="rounded-2xl border border-slate-800 bg-[#0B1220] p-4">
               <h3 className="text-sm font-semibold text-slate-50">Privado</h3>
               <p className="mt-2 text-sm text-slate-300">
-                Local-First de verdad: los PDFs viven en tus dispositivos o en tu propio cloud.
-                FaktuGo gestiona metadatos y automatizaciones.
+                Tus documentos se almacenan de forma segura y solo se utilizan para ayudarte a
+                organizar tus facturas y enviarlas a tu gestoría.
               </p>
             </div>
           </div>
@@ -170,7 +170,7 @@ export default async function Home() {
             <article className="rounded-2xl border border-slate-800 bg-[#0B1220] p-4">
               <h3 className="text-sm font-semibold text-slate-50">Autónomos</h3>
               <p className="mt-2 text-sm text-slate-300">
-                Escanea tickets al momento y olvídate de cajas de zapatos llenas de papeles.
+                Escanea desde movil o sube vía web facturas al momento y olvídate de tanto papeleo.
               </p>
             </article>
             <article className="rounded-2xl border border-slate-800 bg-[#0B1220] p-4">
