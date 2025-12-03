@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSupabaseServerClient } from "@/lib/supabaseServer";
+import { getUserSubscription } from "@/lib/subscription";
 import ProfileForm, { type ProfileData } from "../ProfileForm";
 import AccountSettings from "../AccountSettings";
 
@@ -16,9 +17,14 @@ export default async function AccountPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("display_name,first_name,last_name,type,company_name,country,gestoria_email")
+    .select("display_name,first_name,last_name,type,company_name,country,gestoria_email,is_admin")
     .eq("id", user.id)
     .maybeSingle<ProfileData>();
+
+  const subscription = await getUserSubscription(supabase, user.id);
+  const canSendToGestoriaPlan = subscription.limits.canSendToGestoria;
+  const isAdmin = (profile as any)?.is_admin === true;
+  const canEditGestoriaEmail = isAdmin || canSendToGestoriaPlan;
 
   const { data: activeSubscription } = await supabase
     .from("subscriptions")
@@ -58,6 +64,7 @@ export default async function AccountPage() {
                 userId={user.id}
                 email={user.email ?? ""}
                 profile={profile ?? null}
+                canEditGestoriaEmail={canEditGestoriaEmail}
               />
             </div>
           </div>

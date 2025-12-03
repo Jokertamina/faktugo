@@ -22,6 +22,8 @@ export default function AccountScreen() {
   const [periodMode, setPeriodMode] = useState("month"); // "month" | "week"
   const [rootFolder, setRootFolder] = useState("/FaktuGo");
   const [signingOut, setSigningOut] = useState(false);
+  const [canEditGestoriaEmail, setCanEditGestoriaEmail] = useState(true);
+  const [gestoriaEmailReason, setGestoriaEmailReason] = useState(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -72,7 +74,7 @@ export default function AccountScreen() {
 
         const { data: profile, error: profileError } = await supabase
           .from("profiles")
-          .select("first_name,last_name,type,company_name,country,gestoria_email")
+          .select("first_name,last_name,type,company_name,country,gestoria_email,is_admin")
           .eq("id", user.id)
           .maybeSingle();
 
@@ -87,6 +89,53 @@ export default function AccountScreen() {
           setCompanyName(profile?.company_name ?? "");
           setCountry(profile?.country ?? "");
           setGestoriaEmail(profile?.gestoria_email ?? "");
+        }
+
+        // Calcular si puede editar el email de gestoria segun plan (o si es admin)
+        try {
+          const isAdmin = profile?.is_admin === true;
+          let allowGestoriaEmail = true;
+          let reason = null;
+
+          if (!isAdmin) {
+            const { data: subscription } = await supabase
+              .from("subscriptions")
+              .select("plan_name,status,created_at")
+              .eq("user_id", user.id)
+              .in("status", ["active", "trialing", "past_due"])
+              .order("created_at", { ascending: false })
+              .limit(1)
+              .maybeSingle();
+
+            if (subscription?.plan_name) {
+              const { data: planRow } = await supabase
+                .from("plans")
+                .select("can_send_gestoria")
+                .eq("id", subscription.plan_name)
+                .maybeSingle();
+
+              allowGestoriaEmail = !!planRow?.can_send_gestoria;
+            } else {
+              allowGestoriaEmail = false;
+            }
+
+            if (!allowGestoriaEmail) {
+              reason = "Solo los planes Básico o Pro permiten configurar el email de tu gestoría.";
+            }
+          }
+
+          if (isMounted) {
+            setCanEditGestoriaEmail(allowGestoriaEmail || isAdmin);
+            setGestoriaEmailReason(reason);
+          }
+        } catch (planError) {
+          console.warn("No se pudo determinar el permiso para email de gestoria:", planError);
+          if (isMounted) {
+            setCanEditGestoriaEmail(true);
+          }
+        }
+
+        if (isMounted) {
           setLoadingProfile(false);
         }
 
@@ -115,6 +164,7 @@ export default function AccountScreen() {
     const trimmedFirst = firstName.trim();
     const trimmedLast = lastName.trim();
     const trimmedCompany = companyName.trim();
+    const trimmedGestoria = gestoriaEmail.trim();
     const fullName = `${trimmedFirst} ${trimmedLast}`.trim();
     const isBusiness = clientType === "empresa";
 
@@ -144,17 +194,22 @@ export default function AccountScreen() {
       }
 
       if (existingProfile) {
+        const updatePayload = {
+          display_name: fullName,
+          first_name: trimmedFirst || null,
+          last_name: trimmedLast || null,
+          type: clientType,
+          company_name: trimmedCompany || null,
+          country: country.trim() || null,
+        };
+
+        if (canEditGestoriaEmail) {
+          updatePayload.gestoria_email = trimmedGestoria || null;
+        }
+
         const { error: updateError } = await supabase
           .from("profiles")
-          .update({
-            display_name: fullName,
-            first_name: trimmedFirst || null,
-            last_name: trimmedLast || null,
-            type: clientType,
-            company_name: trimmedCompany || null,
-            country: country.trim() || null,
-            gestoria_email: gestoriaEmail.trim() || null,
-          })
+          .update(updatePayload)
           .eq("id", userId);
 
         if (updateError) {
@@ -166,7 +221,7 @@ export default function AccountScreen() {
         const defaultDisplayName =
           email && typeof email === "string" ? email.split("@")[0] : "Usuario FaktuGo";
         const safeFullName = fullName || defaultDisplayName;
-        const { error: insertError } = await supabase.from("profiles").insert({
+        const insertPayload = {
           id: userId,
           display_name: safeFullName,
           first_name: trimmedFirst || null,
@@ -174,8 +229,13 @@ export default function AccountScreen() {
           type: clientType,
           company_name: trimmedCompany || null,
           country: country.trim() || null,
-          gestoria_email: gestoriaEmail.trim() || null,
-        });
+        };
+
+        if (canEditGestoriaEmail) {
+          insertPayload.gestoria_email = trimmedGestoria || null;
+        }
+
+        const { error: insertError } = await supabase.from("profiles").insert(insertPayload);
 
         if (insertError) {
           console.warn("No se pudo crear el perfil en Cuenta:", insertError);
@@ -408,7 +468,7 @@ export default function AccountScreen() {
               placeholderTextColor="#6B7280"
               autoCapitalize="none"
               keyboardType="email-address"
-              editable={!loadingProfile && !savingProfile}
+              editable={canEditGestoriaEmail && !loadingProfile && !savingProfile}
               style={{
                 backgroundColor: "#020617",
                 borderRadius: 999,
@@ -422,7 +482,10 @@ export default function AccountScreen() {
               }}
             />
             <Text style={{ color: "#9CA3AF", fontSize: 11, marginTop: 4 }}>
-              Usaremos este email para enviar tus facturas a tu gestor/asesor fiscal.
+              {canEditGestoriaEmail
+                ? "Usaremos este email para enviar tus facturas a tu gestor/asesor fiscal."
+                : gestoriaEmailReason ||
+                  "Solo los planes con envío a gestoría (Básico o Pro) permiten configurar el email de tu gestoría."}
             </Text>
 
             <View

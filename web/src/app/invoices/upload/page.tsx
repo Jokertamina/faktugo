@@ -17,22 +17,25 @@ export default async function UploadInvoicesPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("gestoria_email, auto_send_ingested_to_gestoria")
+    .select("gestoria_email, auto_send_ingested_to_gestoria, is_admin")
     .eq("id", user.id)
     .maybeSingle<{
       gestoria_email: string | null;
       auto_send_ingested_to_gestoria: boolean | null;
+      is_admin: boolean | null;
     }>();
 
   const hasGestoriaEmail = !!(profile?.gestoria_email ?? "").trim();
   const autoSendIngested = profile?.auto_send_ingested_to_gestoria ?? false;
+  const isAdmin = profile?.is_admin === true;
 
   // Obtener información de uso
   const subscription = await getUserSubscription(supabase, user.id);
   const monthlyCount = await getMonthlyInvoiceCount(supabase, user.id);
   const limit = subscription.limits.invoicesPerMonth;
   const remaining = Math.max(0, limit - monthlyCount);
-  const canSendToGestoria = subscription.limits.canSendToGestoria;
+  const canSendToGestoriaPlan = subscription.limits.canSendToGestoria;
+  const canSendToGestoria = isAdmin ? true : canSendToGestoriaPlan;
 
   return (
     <div className="min-h-screen bg-[#050816] text-slate-50">
@@ -69,8 +72,9 @@ export default async function UploadInvoicesPage() {
         />
 
         <UploadInvoicesPanel
-          hasGestoriaEmail={hasGestoriaEmail && canSendToGestoria}
+          hasGestoriaEmail={hasGestoriaEmail}
           autoSendIngested={autoSendIngested && canSendToGestoria}
+          canSendToGestoria={canSendToGestoria}
         />
       </main>
     </div>

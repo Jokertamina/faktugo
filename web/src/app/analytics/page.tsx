@@ -246,7 +246,10 @@ export default async function AnalyticsPage() {
             <section className="grid gap-4 lg:grid-cols-2 mt-4">
               {/* Categorías */}
               <div className="rounded-2xl border border-slate-800 bg-[#020617] p-5">
-                <h2 className="text-sm font-semibold text-slate-50 mb-3">Distribución por categorías</h2>
+                <h2 className="text-sm font-semibold text-slate-50 mb-1">Gasto por categoría</h2>
+                <p className="text-[11px] text-slate-500 mb-2">
+                  Total gastado por categoría en los últimos 12 meses (suma de todas las facturas reales).
+                </p>
                 {categories.length === 0 ? (
                   <p className="text-sm text-slate-400">Aún no hay datos suficientes.</p>
                 ) : (
@@ -269,6 +272,9 @@ export default async function AnalyticsPage() {
                               style={{ width: `${width || 4}%` }}
                             />
                           </div>
+                          <p className="text-[10px] text-slate-500">
+                            {cat.count} factura{cat.count === 1 ? "" : "s"} en los últimos 12 meses.
+                          </p>
                         </div>
                       );
                     })}
@@ -278,7 +284,10 @@ export default async function AnalyticsPage() {
 
               {/* Proveedores */}
               <div className="rounded-2xl border border-slate-800 bg-[#020617] p-5">
-                <h2 className="text-sm font-semibold text-slate-50 mb-3">Top proveedores</h2>
+                <h2 className="text-sm font-semibold text-slate-50 mb-1">Top proveedores por gasto</h2>
+                <p className="text-[11px] text-slate-500 mb-2">
+                  Proveedores con mayor importe total facturado en los últimos 12 meses (no es una proyección futura).
+                </p>
                 {suppliers.length === 0 ? (
                   <p className="text-sm text-slate-400">Aún no hay datos suficientes.</p>
                 ) : (
@@ -301,6 +310,9 @@ export default async function AnalyticsPage() {
                               style={{ width: `${width || 4}%` }}
                             />
                           </div>
+                          <p className="text-[10px] text-slate-500">
+                            {sup.count} factura{sup.count === 1 ? "" : "s"} en los últimos 12 meses.
+                          </p>
                         </div>
                       );
                     })}

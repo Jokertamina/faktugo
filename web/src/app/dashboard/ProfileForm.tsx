@@ -17,15 +17,17 @@ export type ProfileData = {
   company_name: string | null;
   country: string | null;
   gestoria_email?: string | null;
+  is_admin?: boolean | null;
 };
 
 interface ProfileFormProps {
   userId: string;
   email: string;
   profile: ProfileData | null;
+  canEditGestoriaEmail: boolean;
 }
 
-export default function ProfileForm({ userId, email, profile }: ProfileFormProps) {
+export default function ProfileForm({ userId, email, profile, canEditGestoriaEmail }: ProfileFormProps) {
   const router = useRouter();
   const [firstName, setFirstName] = useState(profile?.first_name ?? profile?.display_name ?? "");
   const [lastName, setLastName] = useState(profile?.last_name ?? "");
@@ -72,12 +74,15 @@ export default function ProfileForm({ userId, email, profile }: ProfileFormProps
         type,
         company_name: trimmedCompany || null,
         country: country.trim() || null,
-        gestoria_email: trimmedGestoriaEmail || null,
       };
 
-      // Si se borra el email de gestoria, desactivar tambien el auto-envio desde correo interno
-      if (!trimmedGestoriaEmail) {
-        payload.auto_send_ingested_to_gestoria = false;
+      // Solo permitir cambiar el email de gestoria si el plan lo permite
+      if (canEditGestoriaEmail) {
+        payload.gestoria_email = trimmedGestoriaEmail || null;
+        // Si se borra el email de gestoria, desactivar tambien el auto-envio desde correo interno
+        if (!trimmedGestoriaEmail) {
+          payload.auto_send_ingested_to_gestoria = false;
+        }
       }
 
       const { error } = await supabase
@@ -179,10 +184,13 @@ export default function ProfileForm({ userId, email, profile }: ProfileFormProps
           value={gestoriaEmail}
           onChange={(e) => setGestoriaEmail(e.target.value)}
           placeholder="gestoria@ejemplo.com"
+          disabled={!canEditGestoriaEmail}
           className="mt-1 w-full rounded-lg border border-slate-800 bg-[#020617] px-3 py-2 text-xs text-slate-50 outline-none ring-0 focus:border-slate-500"
         />
         <p className="mt-1 text-[11px] text-slate-400">
-          Usaremos este email para enviar tus facturas a tu gestor/asesor fiscal.
+          {canEditGestoriaEmail
+            ? "Usaremos este email para enviar tus facturas a tu gestor/asesor fiscal."
+            : "Solo los planes con envío a gestoría (Básico o Pro) permiten configurar el email de tu gestoría."}
         </p>
       </div>
 

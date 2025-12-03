@@ -28,11 +28,13 @@ function formatSize(bytes: number): string {
 type UploadInvoicesPanelProps = {
   hasGestoriaEmail: boolean;
   autoSendIngested: boolean;
+  canSendToGestoria: boolean;
 };
 
 export default function UploadInvoicesPanel({
   hasGestoriaEmail,
   autoSendIngested,
+  canSendToGestoria,
 }: UploadInvoicesPanelProps) {
   const router = useRouter();
   const [files, setFiles] = useState<LocalFileState[]>([]);
@@ -43,7 +45,7 @@ export default function UploadInvoicesPanel({
   const [sendToGestoria, setSendToGestoria] = useState(false);
   const [showPurposeDialog, setShowPurposeDialog] = useState(false);
   const [purpose, setPurpose] = useState<"archive" | "gestoria">(() =>
-    hasGestoriaEmail && autoSendIngested ? "gestoria" : "archive"
+    hasGestoriaEmail && canSendToGestoria && autoSendIngested ? "gestoria" : "archive"
   );
 
   function addFiles(selected: File[]) {
@@ -111,7 +113,7 @@ export default function UploadInvoicesPanel({
       setSendToGestoria(false);
     } else {
       setArchivalOnly(false);
-      if (hasGestoriaEmail) {
+      if (hasGestoriaEmail && canSendToGestoria) {
         setSendToGestoria(true);
       } else {
         setSendToGestoria(false);
@@ -314,9 +316,12 @@ export default function UploadInvoicesPanel({
               ¿Qué quieres hacer con estas facturas?
             </h3>
             <p className="mt-1 text-[11px] text-slate-400">
-              {hasGestoriaEmail
-                ? "Elige si son solo para almacenarlas o si quieres usarlas para tu gestoria."
-                : "Aun no has configurado el email de tu gestoria; de momento solo podremos subir las facturas."}
+              {hasGestoriaEmail && canSendToGestoria &&
+                "Elige si son solo para almacenarlas o si quieres usarlas para tu gestoria."}
+              {hasGestoriaEmail && !canSendToGestoria &&
+                "Tu plan actual no permite enviar facturas a la gestoria. Puedes almacenarlas igualmente en FaktuGo."}
+              {!hasGestoriaEmail &&
+                "Aun no has configurado el email de tu gestoria; de momento solo podremos subir las facturas."}
             </p>
             <div className="mt-3 space-y-2">
               <label className="flex items-start gap-2">
@@ -339,20 +344,24 @@ export default function UploadInvoicesPanel({
                   className="mt-0.5 h-3 w-3 rounded border-slate-600 bg-slate-900 text-[#22CC88] focus:ring-0"
                   checked={purpose === "gestoria"}
                   onChange={() => setPurpose("gestoria")}
-                  disabled={!hasGestoriaEmail}
+                  disabled={!hasGestoriaEmail || !canSendToGestoria}
                 />
-                <div className={hasGestoriaEmail ? "" : "opacity-60"}>
+                <div className={hasGestoriaEmail && canSendToGestoria ? "" : "opacity-60"}>
                   <p>
-                    {hasGestoriaEmail
+                    {hasGestoriaEmail && canSendToGestoria
                       ? autoSendIngested
                         ? "Subirlas y enviarlas automaticamente a tu gestoria."
                         : "Subirlas y enviarlas ahora a tu gestoria."
-                      : "Subirlas para tu gestoria (no se enviaran hasta que configures su email)."}
+                      : hasGestoriaEmail && !canSendToGestoria
+                        ? "Tu plan actual no permite enviar facturas a la gestoria. Actualiza a un plan con envio para activarlo."
+                        : "Subirlas para tu gestoria (no se enviaran hasta que configures su email)."}
                   </p>
                   <p className="text-[10px] text-slate-500">
-                    {hasGestoriaEmail
+                    {hasGestoriaEmail && canSendToGestoria
                       ? "Se usara el email de tu gestoria configurado en tu perfil."
-                      : "Configura el email de tu gestoria en tu cuenta para poder enviarlas."}
+                      : hasGestoriaEmail && !canSendToGestoria
+                        ? "Tu email de gestoria está configurado, pero tu plan actual no permite envios automáticos."
+                        : "Configura el email de tu gestoria en tu cuenta para poder enviarlas."}
                   </p>
                 </div>
               </label>
