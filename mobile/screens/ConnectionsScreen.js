@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { View, Text, ScrollView, TouchableOpacity, Clipboard, Alert, ActivityIndicator, Modal } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, Clipboard, Alert, ActivityIndicator, Modal, Image } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { styles } from "../styles";
@@ -272,8 +272,12 @@ export default function ConnectionsScreen({ invoices = [], onRefresh }) {
     <View style={styles.container}>
       <View style={{ marginBottom: 24 }}>
         <View style={styles.header}>
-          <View style={styles.logoCircle}>
-            <Text style={styles.logoText}>FG</Text>
+          <View style={{ marginRight: 12 }}>
+            <Image
+              source={require("../assets/icon.png")}
+              style={{ width: 40, height: 40, borderRadius: 12 }}
+              resizeMode="contain"
+            />
           </View>
           <View>
             <Text style={styles.title}>Conexiones</Text>

@@ -16,47 +16,12 @@ export type Invoice = CoreInvoice & {
 
 export { computePeriodFromDate };
 
-export const MOCK_INVOICES: Invoice[] = [
-  {
-    id: "1",
-    date: "2025-02-14",
-    supplier: "REPSOL",
-    category: "Gasolina",
-    amount: "45.60 EUR",
-    status: "Enviada",
-  },
-  {
-    id: "2",
-    date: "2025-02-13",
-    supplier: "MERCADONA",
-    category: "Dietas",
-    amount: "32.10 EUR",
-    status: "Pendiente",
-  },
-  {
-    id: "3",
-    date: "2025-02-11",
-    supplier: "AMAZON",
-    category: "Compras",
-    amount: "89.99 EUR",
-    status: "Enviada",
-  },
-];
-
-export function getMockInvoices(): Invoice[] {
-  // Por defecto usamos agrupacion mensual para los mocks
-  return MOCK_INVOICES.map((inv) => ({
-    ...inv,
-    ...computePeriodFromDate(inv.date, "month"),
-  }));
-}
-
 export async function getInvoices(supabaseOverride?: SupabaseClient): Promise<Invoice[]> {
   const supabase = supabaseOverride ?? getSupabaseClient();
 
-  // Si no hay configuracion de Supabase, usar directamente los mocks.
+  // Si no hay configuración de Supabase, devolver lista vacía en lugar de mocks.
   if (!supabase) {
-    return getMockInvoices();
+    return [];
   }
 
   const { data, error } = await supabase
@@ -68,7 +33,7 @@ export async function getInvoices(supabaseOverride?: SupabaseClient): Promise<In
 
   if (error || !data) {
     console.error("Error al obtener facturas desde Supabase:", error);
-    return getMockInvoices();
+    return [];
   }
 
   const normalized = (data as Invoice[]).map((inv) => {
@@ -91,8 +56,7 @@ export async function getInvoiceById(
   const supabase = supabaseOverride ?? getSupabaseClient();
 
   if (!supabase) {
-    const fromMock = getMockInvoices().find((invoice) => invoice.id === id);
-    return fromMock ?? null;
+    return null;
   }
 
   const { data, error } = await supabase
@@ -105,8 +69,7 @@ export async function getInvoiceById(
 
   if (error) {
     console.error("Error al obtener factura por id desde Supabase:", error);
-    const fromMock = getMockInvoices().find((invoice) => invoice.id === id);
-    return fromMock ?? null;
+    return null;
   }
 
   if (!data) {

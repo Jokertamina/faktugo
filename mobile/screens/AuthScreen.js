@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, ScrollView, KeyboardAvoidingView, Platform, Linking } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, ScrollView, KeyboardAvoidingView, Platform, Linking, Image } from "react-native";
 import { styles } from "../styles";
 import { getSupabaseClient } from "../supabaseClient";
 
@@ -161,8 +161,12 @@ export default function AuthScreen() {
         keyboardShouldPersistTaps="handled"
       >
       <View style={styles.header}>
-        <View style={styles.logoCircle}>
-          <Text style={styles.logoText}>FG</Text>
+        <View style={{ marginRight: 12 }}>
+          <Image
+            source={require("../assets/icon.png")}
+            style={{ width: 40, height: 40, borderRadius: 12 }}
+            resizeMode="contain"
+          />
         </View>
         <View>
           <Text style={styles.title}>FaktuGo</Text>

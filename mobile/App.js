@@ -5,7 +5,7 @@ import { NavigationContainer, useNavigationContainerRef } from "@react-navigatio
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { View, Text, BackHandler, Platform, ToastAndroid } from "react-native";
+import { View, Text, BackHandler, Platform, ToastAndroid, Image } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { fetchInvoicesFromSupabase } from "./api";
 import { getSupabaseClient } from "./supabaseClient";
@@ -276,9 +276,11 @@ export default function App() {
       <SafeAreaView style={styles.safeArea}>
         <StatusBar style="light" />
         <View style={styles.splashContainer}>
-          <View style={styles.splashLogoCircle}>
-            <Text style={styles.logoText}>FG</Text>
-          </View>
+          <Image
+            source={require("./assets/splahs-icon.png")}
+            style={{ width: 96, height: 96, marginBottom: 16 }}
+            resizeMode="contain"
+          />
           <Text style={styles.splashTitle}>FaktuGo</Text>
           <Text style={styles.splashSubtitle}>Tus facturas, en piloto automatico</Text>
           <View style={styles.splashDotsRow}>

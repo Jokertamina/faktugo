@@ -1,5 +1,5 @@
 import React, { useCallback } from "react";
-import { View, Text, FlatList, TouchableOpacity, Alert, ScrollView, Dimensions } from "react-native";
+import { View, Text, FlatList, TouchableOpacity, Alert, ScrollView, Dimensions, Image } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import * as ImagePicker from "expo-image-picker";
 import * as FileSystem from "expo-file-system/legacy";
@@ -374,16 +374,12 @@ export default function HomeScreen({ navigation, invoices, setInvoices, refreshI
       >
         {/* Header */}
         <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 24 }}>
-          <View style={{
-            width: 48,
-            height: 48,
-            borderRadius: 24,
-            backgroundColor: "#2A5FFF",
-            alignItems: "center",
-            justifyContent: "center",
-            marginRight: 14,
-          }}>
-            <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 16 }}>FG</Text>
+          <View style={{ marginRight: 14 }}>
+            <Image
+              source={require("../assets/icon.png")}
+              style={{ width: 48, height: 48, borderRadius: 12 }}
+              resizeMode="contain"
+            />
           </View>
           <View style={{ flex: 1 }}>
             <Text style={{ color: "#F9FAFB", fontSize: 22, fontWeight: "700" }}>FaktuGo</Text>
