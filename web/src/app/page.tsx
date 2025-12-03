@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getInvoices } from "@/lib/invoices";
 import { getSupabaseServerClient } from "@/lib/supabaseServer";
+import HeroDemoPanel from "@/components/HeroDemoPanel";
 
 export const metadata: Metadata = {
   title: "App de facturas para autónomos y empresas",
@@ -17,7 +17,7 @@ export const metadata: Metadata = {
     url: "https://faktugo.com/",
     images: [
       {
-        url: "/og-faktugo.png",
+        url: "/og-faktugo.svg",
         width: 1200,
         height: 630,
         alt: "FaktuGo — App de facturas para autónomos y empresas",
@@ -27,8 +27,6 @@ export const metadata: Metadata = {
 };
 
 export default async function Home() {
-  const invoices = await getInvoices();
-  const topInvoices = invoices.slice(0, 3);
   const supabase = await getSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   const primaryCtaHref = user ? "/dashboard" : "/login";
@@ -87,34 +85,7 @@ export default async function Home() {
           </div>
 
           <div id="demo" className="flex-1">
-            <div className="rounded-3xl border border-slate-800/80 bg-[#0B1220] p-6 shadow-2xl shadow-black/60">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-                <span className="text-sm font-medium text-slate-100">Panel FaktuGo — demo</span>
-                <span className="rounded-full bg-[#22CC88]/20 px-3 py-1 text-xs font-medium text-[#22CC88]">
-                  Mes actual
-                </span>
-              </div>
-              <div className="mt-4 space-y-3 text-sm">
-                {topInvoices.map((invoice) => (
-                  <div
-                    key={invoice.id}
-                    className="flex items-center justify-between rounded-2xl bg-white/5 px-4 py-3"
-                  >
-                    <div>
-                      <p className="font-medium text-slate-50">{invoice.supplier}</p>
-                      <p className="text-xs text-slate-400">
-                        {invoice.date} · {invoice.category}
-                      </p>
-                    </div>
-                    <p className="text-sm font-semibold text-[#22CC88]">{invoice.amount}</p>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-4 flex items-center justify-between border-t border-slate-800 pt-4 text-xs text-slate-400">
-                <span>Ejemplo de facturas del periodo actual</span>
-                <span>Carpetas: /FaktuGo/YYYY-MM o YYYY-SWW</span>
-              </div>
-            </div>
+            <HeroDemoPanel />
           </div>
         </section>
 
