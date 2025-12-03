@@ -407,7 +407,7 @@ export default function HomeScreen({ navigation, invoices, setInvoices, refreshI
             <Text style={{ color: "#22CC88", fontSize: 28, fontWeight: "700" }}>{countThisMonth}</Text>
             <Text style={{ color: "#4B5563", fontSize: 11, marginTop: 2 }}>facturas</Text>
             <Text style={{ color: "#6B7280", fontSize: 10, marginTop: 6 }}>
-              Incluye todo lo que has subido este mes (pendientes, enviadas o archivadas).
+              Incluye todas las facturas cuya fecha está en este mes (pendientes, enviadas o archivadas).
             </Text>
           </View>
           <View style={{

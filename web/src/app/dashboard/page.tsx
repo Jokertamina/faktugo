@@ -108,6 +108,12 @@ export default async function DashboardPage() {
           </div>
           <div className="flex items-center gap-3">
             <Link
+              href="/analytics"
+              className="hidden sm:inline-flex rounded-full border border-slate-700 px-4 py-2 text-xs font-semibold text-slate-100 hover:bg-slate-800"
+            >
+              Ver analítica
+            </Link>
+            <Link
               href="/invoices/upload"
               className="rounded-full bg-[#22CC88] px-4 py-2 text-xs font-semibold text-slate-900 shadow-md shadow-emerald-500/30 hover:bg-[#18a96f]"
             >

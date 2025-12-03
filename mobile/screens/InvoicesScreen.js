@@ -185,6 +185,9 @@ export default function InvoicesScreen({ navigation, route, invoices, refreshInv
         <Text style={{ color: "#6B7280", fontSize: 13, marginTop: 2 }}>
           {filteredInvoices.length} facturas • Pendiente = aún no enviada a tu gestoría ni archivada
         </Text>
+        <Text style={{ color: "#6B7280", fontSize: 11, marginTop: 2 }}>
+          Ordenadas por fecha de la factura (no por fecha de subida). Los totales por mes también se calculan con esa fecha.
+        </Text>
       </View>
 
       {/* Search Bar */}

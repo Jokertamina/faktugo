@@ -24,32 +24,18 @@ import PlansScreen from "./screens/PlansScreen";
 WebBrowser.maybeCompleteAuthSession();
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
-const INITIAL_INVOICES_RAW = [
-  {
-    id: "1",
-    date: "2025-02-14",
-    supplier: "REPSOL",
-    category: "Gasolina",
-    amount: "45.60 EUR",
-  },
-  {
-    id: "2",
-    date: "2025-02-13",
-    supplier: "MERCADONA",
-    category: "Dietas",
-    amount: "32.10 EUR",
-  },
-  {
-    id: "3",
-    date: "2025-02-11",
-    supplier: "AMAZON",
-    category: "Compras",
-    amount: "89.99 EUR",
-  },
-];
-
 const RootStack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
+
+function looksLikeDemoInvoices(list) {
+  if (!Array.isArray(list) || list.length !== 3) return false;
+  const suppliers = list.map((inv) => String(inv.supplier || "")).sort();
+  return (
+    suppliers[0] === "AMAZON" &&
+    suppliers[1] === "MERCADONA" &&
+    suppliers[2] === "REPSOL"
+  );
+}
 
 function MainTabs({ invoices, setInvoices, refreshInvoices }) {
   return (
@@ -137,7 +123,7 @@ function MainTabs({ invoices, setInvoices, refreshInvoices }) {
 
 export default function App() {
   const [isLoading, setIsLoading] = useState(true);
-  const [invoices, setInvoices] = useState(buildInvoices(INITIAL_INVOICES_RAW));
+  const [invoices, setInvoices] = useState([]);
   const [authChecking, setAuthChecking] = useState(true);
   const [user, setUser] = useState(null);
   const navigationRef = useNavigationContainerRef();
@@ -190,7 +176,12 @@ export default function App() {
       try {
         const local = await loadInvoicesFromStorage();
         if (isMounted && local && Array.isArray(local) && local.length > 0) {
-          setInvoices(local);
+          if (looksLikeDemoInvoices(local)) {
+            setInvoices([]);
+            await saveInvoicesToStorage([]);
+          } else {
+            setInvoices(local);
+          }
         }
       } catch {}
       finally {
