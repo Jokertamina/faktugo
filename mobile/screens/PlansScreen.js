@@ -28,10 +28,12 @@ export default function PlansScreen() {
     try {
       // Cargar planes desde la API
       const plansRes = await fetch(`${API_BASE_URL}/api/plans`);
+      let allPlans = [];
       if (plansRes.ok) {
         const plansData = await plansRes.json();
         // Usar allPlans que incluye el plan free
-        setPlans(plansData.allPlans || plansData.plans || []);
+        allPlans = plansData.allPlans || plansData.plans || [];
+        setPlans(allPlans);
       }
 
       // Cargar suscripción actual del usuario
@@ -41,13 +43,28 @@ export default function PlansScreen() {
         if (user) {
           const { data: subscription } = await supabase
             .from("subscriptions")
-            .select("*, plans(*)")
+            .select("plan_name, status, current_period_end, plans(display_name)")
             .eq("user_id", user.id)
-            .eq("status", "active")
+            .in("status", ["active", "trialing", "past_due"])
+            .order("created_at", { ascending: false })
+            .limit(1)
             .maybeSingle();
-          
-          if (subscription?.plans) {
-            setCurrentPlan(subscription.plans.name);
+
+          if (subscription) {
+            let displayName = subscription.plans?.display_name ?? null;
+
+            if (!displayName && subscription.plan_name && Array.isArray(allPlans)) {
+              const match = allPlans.find((p) => p.id === subscription.plan_name);
+              if (match) {
+                displayName = match.name || match.display_name || match.id;
+              }
+            }
+
+            if (displayName) {
+              setCurrentPlan(displayName);
+            } else {
+              setCurrentPlan(null);
+            }
           }
         }
       }

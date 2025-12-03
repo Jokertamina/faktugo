@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { StatusBar } from "expo-status-bar";
 import * as WebBrowser from "expo-web-browser";
+import * as SplashScreen from "expo-splash-screen";
 import { NavigationContainer, useNavigationContainerRef } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { View, Text, BackHandler, Platform, ToastAndroid, Image, ActivityIndicator } from "react-native";
+import { View, Text, BackHandler, Platform, ToastAndroid, Image } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { fetchInvoicesFromSupabase } from "./api";
 import { getSupabaseClient } from "./supabaseClient";
@@ -21,6 +22,7 @@ import AccountScreen from "./screens/AccountScreen";
 import PlansScreen from "./screens/PlansScreen";
 
 WebBrowser.maybeCompleteAuthSession();
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 const INITIAL_INVOICES_RAW = [
   {
@@ -268,6 +270,12 @@ export default function App() {
   const mustAuth = !!supabase && !user;
   const isBooting = isLoading || authChecking;
 
+  useEffect(() => {
+    if (!isBooting) {
+      SplashScreen.hideAsync().catch(() => {});
+    }
+  }, [isBooting]);
+
   return (
     <NavigationContainer ref={navigationRef}>
       <SafeAreaView style={styles.safeArea}>
@@ -292,22 +300,6 @@ export default function App() {
             </RootStack.Screen>
             <RootStack.Screen name="Plans" component={PlansScreen} />
           </RootStack.Navigator>
-        )}
-        {isBooting && (
-          <View
-            style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: "#050816",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <ActivityIndicator size="large" color="#22CC88" />
-          </View>
         )}
       </SafeAreaView>
     </NavigationContainer>
