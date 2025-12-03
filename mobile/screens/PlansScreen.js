@@ -65,6 +65,13 @@ export default function PlansScreen() {
             } else {
               setCurrentPlan(null);
             }
+          } else if (Array.isArray(allPlans)) {
+            const freePlan = allPlans.find((p) => p.id === "free" || p.price_monthly === 0);
+            if (freePlan) {
+              setCurrentPlan(freePlan.name || freePlan.display_name || "Gratuito");
+            } else {
+              setCurrentPlan(null);
+            }
           }
         }
       }
