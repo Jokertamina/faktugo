@@ -54,6 +54,14 @@ export const metadata: Metadata = {
     type: "website",
     siteName: "FaktuGo",
     locale: "es_ES",
+    images: [
+      {
+        url: "/logo-faktugo-mark.svg",
+        width: 1200,
+        height: 630,
+        alt: "FaktuGo — App de facturas para autónomos y empresas",
+      },
+    ],
   },
 };
 

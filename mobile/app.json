@@ -33,7 +33,8 @@
         "android.permission.CAMERA",
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE",
-        "android.permission.INTERNET"
+        "android.permission.INTERNET",
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "web": {
@@ -50,8 +51,9 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "faktugo-app"
+        "projectId": "97ece08d-b107-4c2a-a21d-22a704158844"
       }
-    }
+    },
+    "owner": "jokertamina"
   }
 }
