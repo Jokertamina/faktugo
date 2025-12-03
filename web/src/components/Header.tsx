@@ -56,13 +56,11 @@ export default function Header() {
       <header className="sticky top-0 z-50 border-b border-slate-800/50 bg-[#050816]/95 backdrop-blur-sm">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <Link href="/" className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#2A5FFF]">
-              <span className="text-sm font-bold text-white">FG</span>
-            </div>
-            <div className="hidden sm:block">
-              <span className="text-sm font-semibold text-white">FaktuGo</span>
-              <span className="ml-2 text-xs text-slate-400">Facturas en piloto automático</span>
-            </div>
+            <img
+              src="/logo-faktugo.svg"
+              alt="FaktuGo"
+              className="h-10 w-auto sm:h-12 md:h-14"
+            />
           </Link>
 
           <nav className="hidden items-center gap-1 md:flex">
@@ -106,10 +104,11 @@ export default function Header() {
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#2A5FFF]">
-            <span className="text-sm font-bold text-white">FG</span>
-          </div>
-          <span className="text-lg font-semibold text-white">FaktuGo</span>
+          <img
+            src="/logo-faktugo.svg"
+            alt="FaktuGo"
+            className="h-9 w-auto sm:h-11 md:h-12"
+          />
         </Link>
 
         {/* Desktop Nav */}

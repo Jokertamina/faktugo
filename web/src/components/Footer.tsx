@@ -23,11 +23,14 @@ export default function Footer() {
         <div className="grid gap-8 md:grid-cols-4">
           {/* Brand */}
           <div className="md:col-span-2">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#2A5FFF]">
-                <span className="text-sm font-bold text-white">FG</span>
-              </div>
-              <span className="text-lg font-semibold text-white">FaktuGo</span>
+            <div className="mb-4">
+              <Link href="/" className="inline-flex items-center">
+                <img
+                  src="/logo-faktugo.svg"
+                  alt="FaktuGo"
+                  className="h-16 w-auto sm:h-20 md:h-24"
+                />
+              </Link>
             </div>
             <p className="text-sm text-slate-400 max-w-md">
               La forma más inteligente, automática y segura de gestionar tus facturas. 
