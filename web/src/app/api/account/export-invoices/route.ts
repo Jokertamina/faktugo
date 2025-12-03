@@ -88,13 +88,16 @@ export async function GET() {
       zip.file(finalName, Buffer.from(arrayBuffer));
     }
 
-    const zipBuffer = await zip.generateAsync({ type: "nodebuffer" });
+    // Generamos el ZIP como Uint8Array para que encaje con BodyInit tipado de NextResponse
+    const zipContent = await zip.generateAsync({ type: "uint8array" });
 
     const now = new Date();
     const isoDate = now.toISOString().slice(0, 10);
     const filename = `faktugo-facturas-${isoDate}.zip`;
 
-    return new NextResponse(zipBuffer, {
+    // Cast necesario porque los tipos de BodyInit de NextResponse no reconocen directamente Uint8Array,
+    // aunque en tiempo de ejecución sí es válido como cuerpo de respuesta.
+    return new NextResponse(zipContent as any, {
       status: 200,
       headers: {
         "Content-Type": "application/zip",
