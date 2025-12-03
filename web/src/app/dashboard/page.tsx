@@ -26,7 +26,17 @@ function parseAmountToNumber(amount: string): number {
 	if (!amount) return 0;
 	const cleaned = amount.replace(/[^0-9,.-]/g, "");
 	if (!cleaned) return 0;
-	const normalized = cleaned.replace(/\./g, "").replace(",", ".");
+
+	let normalized = cleaned;
+
+	// Si hay coma, asumimos formato europeo (1.815,25 -> 1815.25)
+	if (normalized.includes(",")) {
+		normalized = normalized.replace(/\./g, "").replace(",", ".");
+	} else {
+		// Sin coma: asumimos punto decimal (151.25 -> 151.25, 1,815.25 -> 1815.25)
+		normalized = normalized.replace(/,/g, "");
+	}
+
 	const n = Number(normalized);
 	return Number.isFinite(n) ? n : 0;
 }
