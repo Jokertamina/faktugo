@@ -16,6 +16,7 @@ const landingNavItems = [
   { href: "/", label: "Inicio" },
   { href: "/pricing", label: "Planes" },
   { href: "/como-funciona", label: "Cómo funciona" },
+  { href: "/guia", label: "Guías" },
 ];
 
 export default function Header() {

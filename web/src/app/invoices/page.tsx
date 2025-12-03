@@ -387,6 +387,15 @@ export default async function InvoicesPage({
           </div>
         </div>
 
+        <div className="mb-4 text-[11px] text-slate-500 space-y-1">
+          <p>
+            <strong className="text-slate-300">Pendiente</strong> = todavía no enviada a tu gestoría ni archivada.
+          </p>
+          <p>
+            Estás viendo agrupaciones <strong className="text-slate-300">por {view === "week" ? "semana" : "mes"}</strong>; cambia la vista cuando necesites revisar otro periodo.
+          </p>
+        </div>
+
         <div className="mb-4 text-xs text-slate-400">
           Mostrando
           <span className="mx-1 font-semibold text-slate-100">{filteredCount}</span>
@@ -400,8 +409,23 @@ export default async function InvoicesPage({
           )}
         </div>
 
-        <div className="overflow-x-auto rounded-2xl border border-slate-800/80 bg-[#0B1220] shadow-2xl shadow-black/60">
-          <table className="min-w-full divide-y divide-slate-800 text-sm">
+        {filteredCount === 0 ? (
+          <div className="rounded-2xl border border-slate-800/80 bg-[#0B1220] p-8 text-center text-sm text-slate-300">
+            <p className="text-3xl mb-3">🗂️</p>
+            <p className="mb-2">No hemos encontrado facturas con estos filtros.</p>
+            <p className="text-slate-500 text-xs">
+              Prueba a ajustar las fechas, la categoría o vuelve a mostrar todos los estados.
+            </p>
+            <Link
+              href="/invoices"
+              className="mt-4 inline-flex items-center justify-center rounded-full border border-slate-600 px-4 py-1.5 text-xs font-semibold text-slate-100 hover:border-slate-300"
+            >
+              Limpiar filtros
+            </Link>
+          </div>
+        ) : (
+          <div className="overflow-x-auto rounded-2xl border border-slate-800/80 bg-[#0B1220] shadow-2xl shadow-black/60">
+            <table className="min-w-full divide-y divide-slate-800 text-sm">
             <thead className="bg-white/5 text-xs font-semibold uppercase tracking-wide text-slate-300">
               <tr>
                 <th className="px-4 py-3 text-left">Fecha</th>
@@ -486,6 +510,7 @@ export default async function InvoicesPage({
             </tbody>
           </table>
         </div>
+        )}
       </main>
     </div>
   );

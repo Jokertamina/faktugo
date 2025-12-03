@@ -173,7 +173,7 @@ export default function InvoicesScreen({ navigation, route, invoices }) {
       <View style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12 }}>
         <Text style={{ color: "#F9FAFB", fontSize: 24, fontWeight: "700" }}>Facturas</Text>
         <Text style={{ color: "#6B7280", fontSize: 13, marginTop: 2 }}>
-          {filteredInvoices.length} facturas
+          {filteredInvoices.length} facturas • Pendiente = aún no enviada a tu gestoría ni archivada
         </Text>
       </View>
 
@@ -386,6 +386,9 @@ export default function InvoicesScreen({ navigation, route, invoices }) {
             <Ionicons name="search-outline" size={40} color="#374151" />
             <Text style={{ color: "#6B7280", fontSize: 14, marginTop: 12, textAlign: "center" }}>
               No se encontraron facturas{search ? ` para "${search}"` : ""}.
+            </Text>
+            <Text style={{ color: "#4B5563", fontSize: 12, marginTop: 6, textAlign: "center" }}>
+              Ajusta el buscador, cambia el estado o vuelve a mostrar todos los periodos.
             </Text>
           </View>
         )}

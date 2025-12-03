@@ -402,6 +402,9 @@ export default function HomeScreen({ navigation, invoices, setInvoices }) {
             </View>
             <Text style={{ color: "#22CC88", fontSize: 28, fontWeight: "700" }}>{countThisMonth}</Text>
             <Text style={{ color: "#4B5563", fontSize: 11, marginTop: 2 }}>facturas</Text>
+            <Text style={{ color: "#6B7280", fontSize: 10, marginTop: 6 }}>
+              Incluye todo lo que has subido este mes (pendientes, enviadas o archivadas).
+            </Text>
           </View>
           <View style={{
             flex: 1,
@@ -417,11 +420,14 @@ export default function HomeScreen({ navigation, invoices, setInvoices }) {
             </View>
             <Text style={{ color: "#22CC88", fontSize: 24, fontWeight: "700" }}>{totalThisMonthLabel}</Text>
             <Text style={{ color: "#4B5563", fontSize: 11, marginTop: 2 }}>acumulado</Text>
+            <Text style={{ color: "#6B7280", fontSize: 10, marginTop: 6 }}>
+              Te ayuda a saber el volumen que entregarás a tu gestoría este periodo.
+            </Text>
           </View>
         </View>
 
-        {/* Pending Card - Clickable */}
-        {pendingCount > 0 && (
+        {/* Pending Card / Helper */}
+        {pendingCount > 0 ? (
           <TouchableOpacity
             onPress={() => navigation.navigate("Invoices", { filter: "Pendiente" })}
             style={{
@@ -447,6 +453,19 @@ export default function HomeScreen({ navigation, invoices, setInvoices }) {
               <Ionicons name="chevron-forward" size={16} color="#F59E0B" />
             </View>
           </TouchableOpacity>
+        ) : (
+          <View style={{
+            backgroundColor: "#0F172A",
+            borderRadius: 16,
+            padding: 16,
+            borderWidth: 1,
+            borderColor: "#1E293B",
+            marginBottom: 24,
+          }}>
+            <Text style={{ color: "#6B7280", fontSize: 12 }}>
+              No tienes facturas pendientes. Cuando subas nuevas, aparecerán aquí para que las envíes rápido.
+            </Text>
+          </View>
         )}
 
         {/* Recent Invoices Section */}

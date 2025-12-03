@@ -1,4 +1,20 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+
+export const metadata: Metadata = {
+  title: "Cómo funciona FaktuGo",
+  description:
+    "Descubre paso a paso cómo FaktuGo escanea, detecta, clasifica, sincroniza y envía tus facturas a gestoría.",
+  alternates: {
+    canonical: "/como-funciona",
+  },
+  openGraph: {
+    title: "Cómo funciona FaktuGo",
+    description:
+      "De una foto de factura al panel organizado y listo para tu gestoría con FaktuGo.",
+    url: "https://faktugo.com/como-funciona",
+  },
+};
 
 export default function ComoFuncionaPage() {
   return (
@@ -31,15 +47,15 @@ export default function ComoFuncionaPage() {
             <li className="rounded-2xl border border-slate-800 bg-[#0B1220] p-4">
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">2. Detecta</p>
               <p className="mt-2 text-sm">
-                Detecta fecha, proveedor e importe mediante OCR y heurísticas pensadas para tickets
-                reales del día a día.
+                Detecta fecha, proveedor e importe analizando automáticamente el documento con IA y
+                lectura de texto pensada para tickets reales del día a día.
               </p>
             </li>
             <li className="rounded-2xl border border-slate-800 bg-[#0B1220] p-4">
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">3. Clasifica</p>
               <p className="mt-2 text-sm">
-                Coloca cada documento en su carpeta mensual o semanal siguiendo las reglas del
-                documento técnico de FaktuGo.
+                Coloca cada documento en su carpeta mensual siguiendo las reglas de periodos de
+                FaktuGo; en el panel podrás ver también vistas agrupadas por semanas.
               </p>
             </li>
             <li className="rounded-2xl border border-slate-800 bg-[#0B1220] p-4">
@@ -56,8 +72,7 @@ export default function ComoFuncionaPage() {
                 5. Envía (opcional)
               </p>
               <p className="mt-2 text-sm">
-                Envía todo a tu gestoría por email o compártelo desde tu nube sin perseguir a nadie
-                por correo.
+                Envía todo a tu gestoría por email o compártelo desde tu nube sin perdidas de tiempo.
               </p>
             </li>
           </ol>

@@ -1,6 +1,16 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getSupabaseServerClient } from "@/lib/supabaseServer";
 import LoginForm from "./LoginForm";
+
+export const metadata: Metadata = {
+  title: "Acceder a FaktuGo",
+  description:
+    "Inicia sesión o crea una cuenta en FaktuGo para gestionar y sincronizar tus facturas entre el móvil y el panel web.",
+  alternates: {
+    canonical: "/login",
+  },
+};
 
 export default async function LoginPage() {
   const supabase = await getSupabaseServerClient();
@@ -22,8 +32,8 @@ export default async function LoginPage() {
             </h1>
             <p className="max-w-xl text-sm text-slate-300 sm:text-base">
               Inicia sesión o crea una cuenta para sincronizar metadatos de tus facturas entre el
-              móvil y el panel web, activar integraciones con Drive y configurar envíos automáticos
-              a tu gestoría.
+              móvil y el panel web y activar funciones avanzadas como el envío de facturas a tu
+              gestoría por email (según tu plan).
             </p>
             <ul className="mt-2 space-y-2 text-sm text-slate-300">
               <li>• Sesiones seguras con Supabase Auth.</li>

@@ -1,6 +1,22 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { getInvoices } from "@/lib/invoices";
 import { getSupabaseServerClient } from "@/lib/supabaseServer";
+
+export const metadata: Metadata = {
+  title: "App de facturas para autónomos y empresas",
+  description:
+    "FaktuGo es la app de facturas para autónomos y empresas que automatiza el escaneado, clasificación y organización de facturas y tickets desde el móvil y el navegador.",
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    title: "App de facturas para autónomos y empresas",
+    description:
+      "Escanea, clasifica y organiza tus facturas y tickets automáticamente con FaktuGo, app móvil y web.",
+    url: "https://faktugo.com/",
+  },
+};
 
 export default async function Home() {
   const invoices = await getInvoices();
@@ -24,9 +40,10 @@ export default async function Home() {
               Tus facturas, en piloto automático.
             </h1>
             <p className="max-w-xl text-base leading-relaxed text-slate-300 sm:text-lg">
-              FaktuGo es la app móvil y web que automatiza todo el proceso de gestionar facturas:
-              escanear, clasificar, ordenar, sincronizar y enviar a gestoría. Tú solo haces una
-              foto o subes un archivo; el resto se hace solo.
+              FaktuGo es la app de facturas para autónomos, empresas que automatiza
+              todo el proceso de gestionar facturas y tickets: escanear, clasificar, ordenar,
+              sincronizar y enviar a gestoría. Tú solo haces una foto o subes un archivo; el resto
+              se hace solo.
             </p>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <Link
@@ -49,7 +66,10 @@ export default async function Home() {
               </div>
               <div>
                 <dt className="font-semibold text-slate-50">Automatización total</dt>
-                <dd>Carpetas automáticas, OCR, Drive opcional y envíos programados a gestoría.</dd>
+                <dd>
+                  Clasificación automática por periodos, análisis con IA de las facturas y opción de
+                  enviar documentación a tu gestoría directamente desde el panel.
+                </dd>
               </div>
               <div>
                 <dt className="font-semibold text-slate-50">Privacidad Local-First</dt>
@@ -122,42 +142,43 @@ export default async function Home() {
 
         
 
-        {/* Sección 4 — Funciones avanzadas */}
+        {/* Sección 4 — Funciones avanzadas (lo que ya existe hoy) */}
         <section className="space-y-6">
           <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">Funciones avanzadas</h2>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             <div className="rounded-2xl border border-slate-800 bg-[#0B1220] p-4">
-              <h3 className="text-sm font-semibold text-slate-50">IA para categorías</h3>
+              <h3 className="text-sm font-semibold text-slate-50">Análisis con IA</h3>
               <p className="mt-2 text-sm text-slate-300">
-                Aprende de tus proveedores habituales (REPSOL, MERCADONA, AMAZON…) para sugerir
-                categorías automáticamente.
+                Analiza facturas con IA para detectar el tipo de documento y proponer proveedor,
+                fecha, importe y una categoría de gasto que luego puedes revisar en el panel.
               </p>
             </div>
             <div className="rounded-2xl border border-slate-800 bg-[#0B1220] p-4">
-              <h3 className="text-sm font-semibold text-slate-50">Estadísticas</h3>
+              <h3 className="text-sm font-semibold text-slate-50">Filtros y búsqueda</h3>
               <p className="mt-2 text-sm text-slate-300">
-                Visualiza gasto por mes, por categoría y por proveedor con gráficas simples y
-                accionables.
+                Filtra por estado, categoría, rango de fechas o proveedor y combina búsquedas para
+                encontrar cualquier factura en segundos.
               </p>
             </div>
             <div className="rounded-2xl border border-slate-800 bg-[#0B1220] p-4">
               <h3 className="text-sm font-semibold text-slate-50">Detección de duplicados</h3>
               <p className="mt-2 text-sm text-slate-300">
-                Evita subir la misma factura dos veces con reglas por importe, proveedor y fecha o
-                checksum del archivo.
+                Evita subir la misma factura dos veces comparando fecha, importe, proveedor y, cuando
+                existe, el número de factura.
               </p>
             </div>
             <div className="rounded-2xl border border-slate-800 bg-[#0B1220] p-4">
-              <h3 className="text-sm font-semibold text-slate-50">Export ZIP</h3>
+              <h3 className="text-sm font-semibold text-slate-50">Envío a gestoría</h3>
               <p className="mt-2 text-sm text-slate-300">
-                Exporta un mes o una semana completa en un ZIP listo para enviar o archivar.
+                Envía facturas individuales a tu gestoría por email directamente desde el panel cuando
+                tengas configurado su correo y tu plan lo permita.
               </p>
             </div>
             <div className="rounded-2xl border border-slate-800 bg-[#0B1220] p-4">
               <h3 className="text-sm font-semibold text-slate-50">Panel web</h3>
               <p className="mt-2 text-sm text-slate-300">
-                Revisa, filtra y edita tus facturas desde cualquier ordenador con un panel web
-                pensado para negocio.
+                Revisa, filtra y edita tus facturas desde cualquier ordenador con un panel web pensado
+                para negocio.
               </p>
             </div>
           </div>
@@ -185,6 +206,8 @@ export default async function Home() {
               <p className="mt-2 text-sm text-slate-300">
                 Recibe la documentación de tus clientes ordenada y siempre a tiempo, sin cadenas
                 infinitas de correos.
+                <br />
+                <span className="text-xs text-slate-400">(Próximamente)</span>
               </p>
             </article>
           </div>
@@ -198,8 +221,9 @@ export default async function Home() {
             <div>
               <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">Planes simples y claros</h2>
               <p className="mt-2 max-w-2xl text-sm text-slate-300">
-                Empieza con una demo Local-First y cuando veas que FaktuGo encaja en tu día a día,
-                pasa a un plan de pago que se ajuste a tu volumen real de facturas.
+                Empieza con el plan gratuito de FaktuGo para probar cómo organiza tus facturas y
+                tickets y, cuando lo necesites, pasa a un plan de pago que se ajuste a tu volumen
+                real de documentos.
               </p>
             </div>
             <Link
@@ -211,13 +235,13 @@ export default async function Home() {
           </div>
         </section>
 
-        {/* Sección 8 — Prueba social (placeholder inicial) */}
+        {/* Sección 8 — Confianza */}
         <section className="space-y-4">
           <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">Confianza y claridad</h2>
           <p className="max-w-2xl text-sm text-slate-300">
-            FaktuGo está diseñado específicamente para la realidad de autónomos, pequeñas empresas
-            y gestorías. A medida que avance el desarrollo se añadirán testimonios y casos reales
-            de uso.
+            FaktuGo está diseñado para la realidad de autónomos y empresas que
+            gestionan decenas o cientos de facturas al mes. Nuestro objetivo es que pierdas menos
+            tiempo con las facturas y puedas centrarte en tu negocio.
           </p>
         </section>
 
@@ -227,21 +251,22 @@ export default async function Home() {
             La forma más inteligente, automática y segura de gestionar tus facturas.
           </h2>
           <p className="mx-auto max-w-2xl text-sm text-slate-300">
-            Hacemos el trabajo que no quieres hacer. Automáticamente. Empieza con la demo Local
-            First y decide después si quieres activar sincronización, Drive y envíos automáticos.
+            Hacemos el trabajo que no quieres hacer con las facturas: escanear, organizar,
+            clasificar y preparar todo para tu gestoría. Empieza gratis y, cuando quieras,
+            activa sincronización, envíos y automatización.
           </p>
           <div className="flex flex-col items-center justify-center gap-3 sm:flex-row sm:justify-center">
             <Link
               href="#demo"
               className="inline-flex items-center justify-center rounded-full bg-[#2A5FFF] px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/30 transition hover:bg-[#224bcc]"
             >
-              Probar demo ahora
+              Ver ejemplo de panel de facturas
             </Link>
             <Link
               href="/pricing"
               className="inline-flex items-center justify-center rounded-full border border-slate-600 px-6 py-3 text-sm font-semibold text-slate-100 hover:border-slate-300 hover:bg-slate-900/60"
             >
-              Ver planes cuando estén disponibles
+              Ver planes y precios
             </Link>
           </div>
         </section>

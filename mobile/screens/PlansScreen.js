@@ -191,6 +191,15 @@ export default function PlansScreen() {
         </View>
       </View>
 
+      <View style={{ backgroundColor: "#0B1220", borderRadius: 16, padding: 16, borderWidth: 1, borderColor: "#111827", marginBottom: 20 }}>
+        <Text style={{ color: "#E5E7EB", fontSize: 13, fontWeight: "600" }}>
+          Plan actual: {currentPlan ? currentPlan : "Gratuito"}
+        </Text>
+        <Text style={{ color: "#9CA3AF", fontSize: 12, marginTop: 4 }}>
+          Puedes cambiar de plan en cualquier momento. Si ya tienes un plan de pago, el cambio se gestiona a través de Stripe.
+        </Text>
+      </View>
+
       {currentPlan && (
         <View style={{
           backgroundColor: "#1E3A5F",
@@ -219,26 +228,21 @@ export default function PlansScreen() {
       )}
 
       {plans.map((plan) => {
-        const isCurrentPlan = currentPlan === plan.name;
-        const isPurchasing = purchasing === plan.id;
-
+        const isCurrent = currentPlan && currentPlan.toLowerCase() === plan.name?.toLowerCase();
         return (
-          <View
-            key={plan.id}
-            style={{
-              backgroundColor: isCurrentPlan ? "#0D2818" : "#0B1220",
-              borderRadius: 16,
-              padding: 20,
-              marginBottom: 16,
-              borderWidth: 1,
-              borderColor: isCurrentPlan ? "#22CC88" : "#1F2937",
-            }}
-          >
+          <View key={plan.id} style={{
+            backgroundColor: "#0B1220",
+            borderRadius: 16,
+            padding: 16,
+            borderWidth: 1,
+            borderColor: "#1E2937",
+            marginBottom: 16,
+          }}>
             <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
               <Text style={{ color: "#F9FAFB", fontSize: 18, fontWeight: "700" }}>
                 {plan.name}
               </Text>
-              {isCurrentPlan && (
+              {isCurrent && (
                 <View style={{
                   backgroundColor: "#22CC88",
                   borderRadius: 12,
@@ -271,29 +275,34 @@ export default function PlansScreen() {
               ))}
             </View>
 
-            {!isCurrentPlan && plan.price_monthly > 0 && (
+            {!isCurrent && plan.price_monthly > 0 && (
               <TouchableOpacity
                 onPress={() => handleSubscribe(plan)}
-                disabled={isPurchasing}
-                style={{
-                  marginTop: 20,
-                  backgroundColor: isPurchasing ? "#1F2937" : "#22CC88",
-                  borderRadius: 999,
-                  paddingVertical: 12,
-                  alignItems: "center",
-                  flexDirection: "row",
-                  justifyContent: "center",
-                  gap: 8,
-                }}
+                disabled={purchasing === plan.id}
+                style={[
+                  {
+                    marginTop: 20,
+                    backgroundColor: "#22CC88",
+                    borderRadius: 999,
+                    paddingVertical: 12,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexDirection: "row",
+                    gap: 8,
+                  },
+                  (purchasing === plan.id) && { opacity: 0.6 },
+                ]}
               >
-                {isPurchasing && <ActivityIndicator size="small" color="#9CA3AF" />}
-                <Text style={{ color: isPurchasing ? "#9CA3AF" : "#022c22", fontWeight: "600" }}>
-                  {isPurchasing ? "Procesando..." : "Suscribirse"}
+                {purchasing === plan.id && <ActivityIndicator size="small" color="#022c22" />}
+                <Text style={{ color: "#022c22", fontSize: 13, fontWeight: "600" }}>
+                  {purchasing === plan.id
+                    ? "Procesando..."
+                    : "Elegir este plan"}
                 </Text>
               </TouchableOpacity>
             )}
 
-            {plan.price_monthly === 0 && !isCurrentPlan && (
+            {plan.price_monthly === 0 && !isCurrent && (
               <View style={{
                 marginTop: 20,
                 backgroundColor: "#1F2937",

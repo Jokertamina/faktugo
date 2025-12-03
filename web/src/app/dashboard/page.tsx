@@ -138,6 +138,9 @@ export default async function DashboardPage() {
               </div>
             </div>
             <p className="text-xs text-slate-500">{currentMonthName} {currentYear}</p>
+            <p className="mt-2 text-[11px] text-slate-500">
+              Incluye todas las facturas subidas en el mes actual, estén pendientes, enviadas o archivadas.
+            </p>
           </div>
 
           <div className="rounded-2xl border border-slate-800 bg-gradient-to-br from-[#0F172A] to-[#0B1220] p-5">
@@ -151,6 +154,9 @@ export default async function DashboardPage() {
               </div>
             </div>
             <p className="text-xs text-slate-500">Total: {invoices.length} facturas</p>
+            <p className="mt-2 text-[11px] text-slate-500">
+              Útil para saber cuánta documentación has generado antes de enviar el paquete del trimestre.
+            </p>
           </div>
 
           <Link
@@ -166,7 +172,7 @@ export default async function DashboardPage() {
                 <p className="text-xl font-bold text-amber-400">{pendingCount}</p>
               </div>
             </div>
-            <p className="text-xs text-slate-500">Enviadas: {sentCount} →</p>
+            <p className="text-xs text-slate-500">Pendiente = aún no enviada a gestoría ni archivada.</p>
           </Link>
 
           <Link
@@ -185,9 +191,14 @@ export default async function DashboardPage() {
               </div>
             </div>
             {topCategoryEntry ? (
-              <p className="text-xs text-slate-500">
-                {topCategoryAmount.toLocaleString("es-ES", { style: "currency", currency: "EUR" })} →
-              </p>
+              <>
+                <p className="text-xs text-slate-500">
+                  {topCategoryAmount.toLocaleString("es-ES", { style: "currency", currency: "EUR" })} →
+                </p>
+                <p className="mt-1 text-[11px] text-slate-500">
+                  Basado en las categorías asignadas por ti o por la IA este mes.
+                </p>
+              </>
             ) : (
               <p className="text-xs text-slate-500">Ver facturas →</p>
             )}
@@ -249,7 +260,7 @@ export default async function DashboardPage() {
             <div className="rounded-2xl sm:rounded-3xl border border-slate-800 bg-[#0B1220] p-4 sm:p-5">
               <h2 className="text-sm font-semibold text-slate-50">Tu cuenta</h2>
               <p className="mt-2 hidden text-xs text-slate-300 sm:block">
-                Datos básicos de tu perfil en FaktuGo.
+                Tus datos se usan en emails, envíos a gestoría y facturas emitidas desde FaktuGo.
               </p>
               <div className="mt-3">
                 <ProfileForm

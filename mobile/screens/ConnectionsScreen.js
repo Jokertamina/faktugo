@@ -214,7 +214,7 @@ export default function ConnectionsScreen({ invoices = [], onRefresh }) {
           <View>
             <Text style={styles.title}>Conexiones</Text>
             <Text style={styles.subtitle}>
-              Configura aqui las integraciones con otras fuentes y atajos con tu gestoria.
+              Activa fuentes automáticas (correo interno) y envía paquetes cerrados a tu gestoría.
             </Text>
           </View>
         </View>
@@ -224,8 +224,7 @@ export default function ConnectionsScreen({ invoices = [], onRefresh }) {
         <View style={{ marginBottom: 20 }}>
           <Text style={styles.sectionTitle}>Fuentes de documentos</Text>
           <Text style={styles.sectionDescription}>
-            Aqui conectaras otras fuentes ademas de la camara del movil (Drive, correo,
-            etc.).
+            Aqui conectaras otras fuentes ademas de la camara del movil (Drive, correo...).
           </Text>
 
           <View style={{ backgroundColor: "#0B1220", borderRadius: 16, padding: 14, gap: 12 }}>
@@ -307,6 +306,7 @@ export default function ConnectionsScreen({ invoices = [], onRefresh }) {
               ) : !loadingUser && !featureDisabled && (
                 <Text style={{ color: "#9CA3AF", fontSize: 12 }}>
                   Genera tu correo interno desde el panel web para recibir facturas automáticamente.
+                  Lo verás aquí cuando esté listo.
                 </Text>
               )}
             </View>
@@ -316,7 +316,7 @@ export default function ConnectionsScreen({ invoices = [], onRefresh }) {
         <View style={{ marginBottom: 20 }}>
           <Text style={styles.sectionTitle}>Acciones rapidas</Text>
           <Text style={styles.sectionDescription}>
-            Atajos que conectaran tu app con la gestoria.
+            Envía en bloque las facturas pendientes del mes a tu gestoría (requiere correo activo y plan que lo permita).
           </Text>
 
           <TouchableOpacity
@@ -353,8 +353,13 @@ export default function ConnectionsScreen({ invoices = [], onRefresh }) {
               </>
             )}
           </TouchableOpacity>
-
+          {pendingThisMonth.length === 0 && (
+            <Text style={{ color: "#6B7280", fontSize: 11, textAlign: "center" }}>
+              No hay facturas pendientes este mes. En cuanto subas nuevas, podrás enviarlas desde aquí.
+            </Text>
+          )}
         </View>
+
       </ScrollView>
     </View>
   );

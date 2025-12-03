@@ -1,3 +1,20 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "App móvil de facturas para Android y iOS",
+  description:
+    "Escanea tus facturas al momento con la app móvil de FaktuGo para Android y iOS y sincronízalas con el panel web.",
+  alternates: {
+    canonical: "/app",
+  },
+  openGraph: {
+    title: "App móvil de facturas para Android y iOS",
+    description:
+      "Lleva FaktuGo en el bolsillo para capturar y organizar tus facturas desde cualquier lugar.",
+    url: "https://faktugo.com/app",
+  },
+};
+
 export default function AppMobilePage() {
   return (
     <div className="min-h-screen bg-[#050816] text-slate-50">
@@ -10,19 +27,19 @@ export default function AppMobilePage() {
             Lleva FaktuGo en el bolsillo.
           </h1>
           <p className="max-w-2xl text-sm text-slate-300 sm:text-base">
-            La app móvil de FaktuGo estará disponible para Android y iOS. Escanea tus facturas al
-            momento y tenlo todo sincronizado con el panel web cuando actives la cuenta en la nube.
+            La app móvil de FaktuGo para Android y iOS te permite escanear tus facturas al momento
+            y tenerlo todo sincronizado con el panel web cuando actives la cuenta en la nube.
           </p>
         </header>
 
         <section className="space-y-4 rounded-3xl border border-slate-800 bg-[#0B1220] p-6 md:p-8">
           <h2 className="text-xl font-semibold tracking-tight sm:text-2xl">
-            Estado actual
+            Disponible en tu móvil
           </h2>
           <p className="max-w-2xl text-sm text-slate-300">
-            Estamos terminando de pulir la app móvil antes de publicarla en las tiendas oficiales.
-            Mientras tanto, puedes utilizar el panel web y la demo Local-First para organizar tus
-            facturas desde el ordenador.
+            Muy pronto podrás descargar FaktuGo desde las tiendas oficiales para tener la gestión
+            de tus facturas siempre contigo. Mientras tanto, puedes utilizar el panel web para
+            organizar y revisar toda tu documentación.
           </p>
           <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
             <button
@@ -55,8 +72,8 @@ export default function AppMobilePage() {
             <li className="rounded-2xl border border-slate-800 bg-[#0B1220] p-4">
               <h3 className="text-sm font-semibold text-slate-50">Organizar sin pensar</h3>
               <p className="mt-2 text-sm text-slate-300">
-                Cada factura se enviará a su carpeta del mes o la semana correspondiente siguiendo la
-                misma lógica que en el panel web.
+                Cada factura se enviará a su carpeta del mes correspondiente siguiendo la misma
+                lógica que en el panel web, donde además podrás ver vistas agrupadas por semanas.
               </p>
             </li>
             <li className="rounded-2xl border border-slate-800 bg-[#0B1220] p-4">

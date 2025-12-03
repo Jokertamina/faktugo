@@ -28,8 +28,8 @@ export default function UsageAlert({ plan, used, limit, remaining, canSendToGest
             <div className="flex-1">
               <p className="font-medium text-red-300">Has alcanzado el límite de facturas</p>
               <p className="mt-1 text-sm text-red-300/80">
-                Tu plan {plan === "free" ? "gratuito" : plan} permite {limit} facturas/mes.
-                Ya has subido {used}.
+                Tu plan {plan === "free" ? "gratuito" : plan} permite {limit} facturas/mes y ya has subido {used}.
+                No podrás subir más facturas hasta el próximo mes natural a menos que actualices el plan.
               </p>
               <Link
                 href="/pricing"
@@ -50,7 +50,7 @@ export default function UsageAlert({ plan, used, limit, remaining, canSendToGest
             <div className="flex-1">
               <p className="font-medium text-amber-300">Te quedan pocas facturas</p>
               <p className="mt-1 text-sm text-amber-300/80">
-                Has usado {used} de {limit} facturas este mes. Te quedan {remaining}.
+                Has usado {used} de {limit} facturas este mes. Te quedan {remaining} antes de que bloqueemos nuevas subidas.
               </p>
               <Link
                 href="/pricing"
@@ -71,8 +71,8 @@ export default function UsageAlert({ plan, used, limit, remaining, canSendToGest
             <div className="flex-1">
               <p className="font-medium text-slate-200">Plan gratuito</p>
               <p className="mt-1 text-sm text-slate-400">
-                En el plan gratuito no puedes enviar facturas a tu gestoría.
-                Actualiza para desbloquear esta función.
+                En el plan gratuito no puedes enviar facturas a tu gestoría directamente desde FaktuGo.
+                Actualiza a Básico o Pro para habilitar el correo automático.
               </p>
             </div>
           </div>
