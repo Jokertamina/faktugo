@@ -64,21 +64,25 @@ export default function ProfileForm({ userId, email, profile }: ProfileFormProps
         return;
       }
 
+      const payload: any = {
+        id: userId,
+        display_name: fullName,
+        first_name: trimmedFirst || null,
+        last_name: trimmedLast || null,
+        type,
+        company_name: trimmedCompany || null,
+        country: country.trim() || null,
+        gestoria_email: trimmedGestoriaEmail || null,
+      };
+
+      // Si se borra el email de gestoria, desactivar tambien el auto-envio desde correo interno
+      if (!trimmedGestoriaEmail) {
+        payload.auto_send_ingested_to_gestoria = false;
+      }
+
       const { error } = await supabase
         .from("profiles")
-        .upsert(
-          {
-            id: userId,
-            display_name: fullName,
-            first_name: trimmedFirst || null,
-            last_name: trimmedLast || null,
-            type,
-            company_name: trimmedCompany || null,
-            country: country.trim() || null,
-            gestoria_email: trimmedGestoriaEmail || null,
-          },
-          { onConflict: "id" }
-        );
+        .upsert(payload, { onConflict: "id" });
 
       if (error) throw error;
 

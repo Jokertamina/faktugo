@@ -29,6 +29,27 @@ export async function DELETE() {
 
     const serviceClient = getSupabaseServiceClient();
 
+    // Eliminar archivos de facturas del storage
+    const { data: userInvoices, error: invoicesError } = await serviceClient
+      .from("invoices")
+      .select("file_path")
+      .eq("user_id", user.id);
+
+    if (invoicesError) {
+      console.error("No se pudieron obtener las facturas antes de eliminar cuenta:", invoicesError);
+    } else if (userInvoices && userInvoices.length > 0) {
+      const paths = userInvoices
+        .map((inv: any) => inv.file_path as string | null)
+        .filter((p): p is string => !!p);
+
+      if (paths.length > 0) {
+        const { error: storageError } = await serviceClient.storage.from("invoices").remove(paths);
+        if (storageError) {
+          console.error("No se pudieron eliminar archivos de invoices storage al borrar cuenta:", storageError);
+        }
+      }
+    }
+
     // Eliminar facturas del usuario
     await serviceClient
       .from("invoices")

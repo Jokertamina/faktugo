@@ -7,10 +7,11 @@ import { CookieSettingsButton } from "./CookieBanner";
 export default function Footer() {
   const pathname = usePathname();
 
-  // Solo mostrar footer en landing, pricing y páginas legales
+  // Solo mostrar footer en landing, pricing, login y páginas legales
   const showFooter = 
     pathname === "/" || 
-    pathname === "/pricing" || 
+    pathname === "/pricing" ||
+    pathname === "/login" ||
     pathname?.startsWith("/legal");
 
   if (!showFooter) {
@@ -96,16 +97,10 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="mt-12 pt-8 border-t border-slate-800/50 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-slate-500">
+        <div className="mt-12 pt-8 border-t border-slate-800/50 flex items-center justify-center">
+          <p className="text-xs text-slate-500 text-center">
             © {new Date().getFullYear()} FaktuGo. Todos los derechos reservados.
           </p>
-          <div className="flex items-center gap-4 text-xs text-slate-500">
-            <Link href="/legal/aviso-legal" className="hover:text-slate-300">Aviso Legal</Link>
-            <Link href="/legal/terminos" className="hover:text-slate-300">Términos</Link>
-            <Link href="/legal/privacidad" className="hover:text-slate-300">Privacidad</Link>
-            <Link href="/legal/cookies" className="hover:text-slate-300">Cookies</Link>
-          </div>
         </div>
       </div>
     </footer>

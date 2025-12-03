@@ -203,8 +203,13 @@ export async function GET() {
       console.error("Error al obtener perfil para correo interno:", profileError);
     }
 
-    const autoSend = profile?.auto_send_ingested_to_gestoria ?? false;
-    const gestoriaEmail = profile?.gestoria_email ?? null;
+    const rawGestoriaEmail = profile?.gestoria_email ?? null;
+    const gestoriaEmailTrimmed = (rawGestoriaEmail ?? "").trim();
+    const hasGestoriaEmail = !!gestoriaEmailTrimmed;
+    const autoSend = hasGestoriaEmail
+      ? profile?.auto_send_ingested_to_gestoria ?? false
+      : false;
+    const gestoriaEmail = hasGestoriaEmail ? gestoriaEmailTrimmed : null;
 
     // Comprobamos si el usuario puede usar la recepción de facturas por correo (correo interno FaktuGo) según su plan
     const emailIngestionCheck = await canUseEmailIngestion(supabase, user.id);
@@ -212,7 +217,7 @@ export async function GET() {
     return NextResponse.json({
       alias: emailIngestionCheck.allowed ? alias : null,
       autoSendToGestoria: autoSend,
-      hasGestoriaEmail: !!gestoriaEmail,
+      hasGestoriaEmail,
       gestoriaEmail,
       canUseEmailIngestion: emailIngestionCheck.allowed,
       emailIngestionReason: emailIngestionCheck.reason ?? null,

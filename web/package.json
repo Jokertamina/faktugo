@@ -12,6 +12,7 @@
     "@faktugo/core": "file:../packages/core",
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.86.0",
+    "jszip": "^3.10.1",
     "next": "16.0.4",
     "openai": "^4.0.0",
     "pdf-parse": "^1.1.1",

@@ -14,6 +14,7 @@ export default function AccountSettings({ hasActiveSubscription }: AccountSettin
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState("");
   const [portalLoading, setPortalLoading] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
 
   async function handleManageSubscription() {
     setPortalLoading(true);
@@ -29,6 +30,33 @@ export default function AccountSettings({ hasActiveSubscription }: AccountSettin
       alert("Error al abrir el portal de facturación");
     } finally {
       setPortalLoading(false);
+    }
+  }
+
+  async function handleExportInvoices() {
+    try {
+      setExportLoading(true);
+      const res = await fetch("/api/account/export-invoices");
+
+      if (!res.ok) {
+        const json = await res.json().catch(() => null as any);
+        alert(json?.error || "No se pudo generar el ZIP de facturas");
+        return;
+      }
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "faktugo-facturas.zip";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch {
+      alert("No se pudo descargar el ZIP de facturas");
+    } finally {
+      setExportLoading(false);
     }
   }
 
@@ -83,6 +111,25 @@ export default function AccountSettings({ hasActiveSubscription }: AccountSettin
         </div>
       )}
 
+      {/* Exportar facturas */}
+      <div className="rounded-xl border border-slate-800 bg-[#0B1220] p-4">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-sm font-medium text-slate-200">Exportar facturas</p>
+            <p className="mt-1 text-xs text-slate-400">
+              Descarga un archivo ZIP con todas las facturas guardadas en FaktuGo antes de eliminar tu cuenta.
+            </p>
+          </div>
+          <button
+            onClick={handleExportInvoices}
+            disabled={exportLoading}
+            className="shrink-0 rounded-lg border border-slate-600 px-4 py-2 text-sm font-medium text-slate-100 hover:bg-slate-800 disabled:opacity-50"
+          >
+            {exportLoading ? "Preparando ZIP..." : "Descargar ZIP"}
+          </button>
+        </div>
+      </div>
+
       {/* Eliminar cuenta */}
       <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-4">
         <div className="flex items-start justify-between gap-4">
@@ -90,6 +137,7 @@ export default function AccountSettings({ hasActiveSubscription }: AccountSettin
             <p className="text-sm font-medium text-red-300">Zona de peligro</p>
             <p className="mt-1 text-xs text-slate-400">
               Eliminar tu cuenta borrará todas tus facturas y datos. Esta acción es irreversible.
+              Te recomendamos descargar antes un ZIP con tus facturas.
             </p>
             {hasActiveSubscription && (
               <p className="mt-2 text-xs text-amber-400">

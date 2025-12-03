@@ -10,6 +10,7 @@ const appNavItems = [
   { href: "/dashboard", label: "Dashboard"},
   { href: "/invoices", label: "Facturas"},
   { href: "/invoices/upload", label: "Subir"},
+  { href: "/dashboard/account", label: "Cuenta"},
 ];
 
 const landingNavItems = [
@@ -40,16 +41,52 @@ export default function Header() {
     window.location.href = "/login";
   };
 
-  // No mostrar header en login o auth
-  if (pathname === "/login" || pathname?.startsWith("/auth")) {
+  // No mostrar header en rutas de auth internas, pero sí en /login
+  if (pathname?.startsWith("/auth") && pathname !== "/login") {
     return null;
   }
 
+  const isLogin = pathname === "/login";
   const isLanding =
     pathname === "/" ||
     pathname === "/pricing" ||
     pathname === "/como-funciona" ||
     pathname === "/app";
+
+  // Header minimal para /login: Inicio + Acceder
+  if (isLogin) {
+    return (
+      <header className="sticky top-0 z-50 border-b border-slate-800/50 bg-[#050816]/95 backdrop-blur-sm">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+          <Link href="/" className="flex items-center gap-3">
+            <img
+              src="/logo-faktugo.svg"
+              alt="FaktuGo"
+              className="h-10 w-auto sm:h-12 md:h-14"
+            />
+          </Link>
+
+          <nav className="hidden items-center gap-1 md:flex">
+            <Link
+              href="/"
+              className="rounded-lg px-3 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white transition"
+            >
+              Inicio
+            </Link>
+          </nav>
+
+          <div className="flex items-center gap-3">
+            <Link
+              href="/login"
+              className="rounded-full bg-[#2A5FFF] px-4 py-2 text-xs font-semibold text-white hover:bg-[#224bcc] transition"
+            >
+              Acceder
+            </Link>
+          </div>
+        </div>
+      </header>
+    );
+  }
 
   // Landing/Public Header
   if (isLanding) {

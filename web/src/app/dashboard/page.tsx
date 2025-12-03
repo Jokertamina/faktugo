@@ -6,7 +6,6 @@ import ProfileForm, { type ProfileData } from "./ProfileForm";
 import EmailAliasCard from "./EmailAliasCard";
 import SubscriptionCard from "./SubscriptionCard";
 import SupportButton from "./SupportButton";
-import AccountSettings from "./AccountSettings";
 
 const MONTH_NAMES = [
 	"Enero",
@@ -259,17 +258,19 @@ export default async function DashboardPage() {
           <div className="space-y-4">
             <div className="rounded-2xl sm:rounded-3xl border border-slate-800 bg-[#0B1220] p-4 sm:p-5">
               <h2 className="text-sm font-semibold text-slate-50">Tu cuenta</h2>
-              <p className="mt-2 hidden text-xs text-slate-300 sm:block">
-                Tus datos se usan en emails, envíos a gestoría y facturas emitidas desde FaktuGo.
+              <p className="mt-2 text-xs text-slate-300">
+                Gestiona tus datos personales, exportación de facturas y eliminación de cuenta en la página de cuenta.
               </p>
-              <div className="mt-3">
-                <ProfileForm
-                  userId={user.id}
-                  email={user.email ?? ""}
-                  profile={profile ?? null}
-                />
+              <div className="mt-4 flex justify-start">
+                <Link
+                  href="/dashboard/account"
+                  className="rounded-full border border-slate-700 px-4 py-2 text-xs font-medium text-slate-100 hover:bg-slate-800"
+                >
+                  Abrir configuración de cuenta
+                </Link>
               </div>
             </div>
+
             <EmailAliasCard />
 
             <SubscriptionCard />
@@ -277,8 +278,6 @@ export default async function DashboardPage() {
             <div className="flex justify-center">
               <SupportButton />
             </div>
-
-            <AccountSettings hasActiveSubscription={hasActiveSubscription} />
           </div>
         </section>
       </main>
