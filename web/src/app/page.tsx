@@ -15,6 +15,14 @@ export const metadata: Metadata = {
     description:
       "Escanea, clasifica y organiza tus facturas y tickets automáticamente con FaktuGo, app móvil y web.",
     url: "https://faktugo.com/",
+    images: [
+      {
+        url: "/og-faktugo.png",
+        width: 1200,
+        height: 630,
+        alt: "FaktuGo — App de facturas para autónomos y empresas",
+      },
+    ],
   },
 };
 

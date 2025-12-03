@@ -1,9 +1,14 @@
+// faktugo/mobile/config.js
+// Configuración fija que debe usar la app móvil en PRODUCCIÓN.
+// Para desarrollo, si quieres apuntar a otro backend o Supabase,
+// puedes cambiar estos valores temporalmente en tu máquina.
+
 // URL base de la API web (Next.js)
-// Para desarrollo en tu red local puedes ajustar esta URL a la IP que te muestre Next como "Network".
-// Ejemplo: http://192.168.1.128:3000
+export const API_BASE_URL = "https://www.faktugo.com";
 
-export const API_BASE_URL =
-  process.env.EXPO_PUBLIC_API_BASE_URL ?? "http://192.168.1.128:3000"; // ajusta si cambia tu IP
+// Configuración de Supabase (misma que en la web)
+export const SUPABASE_URL = "https://gvfosbunvfodjicypsmo.supabase.co";
 
-export const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL ?? "";
-export const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? "";
+// Clave anon pública de Supabase (segura para exponer en el cliente)
+export const SUPABASE_ANON_KEY =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd2Zm9zYnVudmZvZGppY3lwc21vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQxNzI2MjQsImV4cCI6MjA3OTc0ODYyNH0.g6HeyQ81DuRQTLz_O25HJCwYkMLR0aheHx_Ms48ChPU";

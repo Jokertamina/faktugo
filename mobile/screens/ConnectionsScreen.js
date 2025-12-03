@@ -4,8 +4,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { styles } from "../styles";
 import { getSupabaseClient } from "../supabaseClient";
-
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || "https://faktugo.com";
+import { API_BASE_URL } from "../config";
 
 export default function ConnectionsScreen({ invoices = [], onRefresh }) {
   const [email, setEmail] = useState(null);
