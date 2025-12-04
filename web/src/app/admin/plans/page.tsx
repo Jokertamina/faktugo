@@ -98,7 +98,7 @@ export default function AdminPlansPage() {
           href="/admin"
           className="text-xs text-slate-400 hover:text-slate-200"
         >
-          860 Volver al panel
+          Volver al panel
         </Link>
       </div>
 
