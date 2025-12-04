@@ -76,12 +76,20 @@ export async function GET(request: Request) {
     }
 
     // Combinar datos
+    const now = new Date();
     const users = (data || []).map(user => {
-      // Obtener la suscripción activa (si existe)
+      // Obtener la suscripción activa (si existe), ignorando suscripciones manuales expiradas
       const subs = Array.isArray(user.subscriptions) ? user.subscriptions : [];
-      const activeSub = subs.find((s: any) => 
-        s.status === "active" || s.status === "trialing"
-      );
+      const activeSub = subs.find((s: any) => {
+        const isStatusActive = s.status === "active" || s.status === "trialing";
+        if (!isStatusActive) return false;
+        if (s.is_manual && s.current_period_end) {
+          const end = new Date(s.current_period_end);
+          if (Number.isNaN(end.getTime())) return false;
+          return end >= now;
+        }
+        return true;
+      });
 
       return {
         id: user.id,
@@ -103,7 +111,11 @@ export async function GET(request: Request) {
       };
     });
 
-    return NextResponse.json({ users });
+    const { count: totalProfiles } = await auth.supabase
+      .from("profiles")
+      .select("id", { count: "exact", head: true });
+
+    return NextResponse.json({ users, total: totalProfiles ?? users.length });
   } catch (error: any) {
     console.error("Error listando usuarios:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });

@@ -169,6 +169,8 @@ export async function POST(request: Request) {
       tax_id_collection: {
         enabled: true,
       },
+      // Permitir que el usuario introduzca códigos de descuento (promotion codes)
+      allow_promotion_codes: true,
       success_url: successUrl,
       cancel_url: cancelUrl,
       metadata: {

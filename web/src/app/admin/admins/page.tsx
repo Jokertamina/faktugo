@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { useAdmin } from "../AdminAuthGate";
 
 interface AdminUser {
@@ -238,12 +239,20 @@ export default function AdminsPage() {
             Gestiona quién tiene acceso al panel de administración
           </p>
         </div>
-        <button
-          onClick={openCreateModal}
-          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-        >
-          + Nuevo admin
-        </button>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/admin"
+            className="text-xs text-slate-400 hover:text-slate-200"
+          >
+            860 Volver al panel
+          </Link>
+          <button
+            onClick={openCreateModal}
+            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+          >
+            + Nuevo admin
+          </button>
+        </div>
       </div>
 
       {message.text && (

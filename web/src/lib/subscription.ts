@@ -147,20 +147,36 @@ export async function getUserSubscription(
 
   const { data: subscription } = await supabase
     .from("subscriptions")
-    .select("plan_name, status, current_period_end")
+    .select("plan_name, status, current_period_end, is_manual")
     .eq("user_id", userId)
     .in("status", ["active", "trialing", "past_due"])
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
 
-  if (!subscription) {
-    return {
-      plan: "free",
-      planConfig: freePlan,
-      status: "inactive",
-      limits: toLimits(freePlan),
-    };
+  const now = new Date();
+
+  if (!subscription || (subscription.is_manual && subscription.current_period_end)) {
+    if (subscription?.is_manual && subscription.current_period_end) {
+      const end = new Date(subscription.current_period_end as any);
+      if (!Number.isNaN(end.getTime()) && end < now) {
+        return {
+          plan: "free",
+          planConfig: freePlan,
+          status: "inactive",
+          limits: toLimits(freePlan),
+        };
+      }
+    }
+
+    if (!subscription) {
+      return {
+        plan: "free",
+        planConfig: freePlan,
+        status: "inactive",
+        limits: toLimits(freePlan),
+      };
+    }
   }
 
   const planName = subscription.plan_name || "free";

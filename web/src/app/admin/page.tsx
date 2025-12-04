@@ -12,13 +12,26 @@ export default async function AdminDashboard() {
   // Estadísticas de suscripciones activas
   const { data: subscriptions } = await supabase
     .from("subscriptions")
-    .select("plan_name")
+    .select("plan_name, is_manual, current_period_end, status")
     .in("status", ["active", "trialing"]);
 
-  const subsByPlan = (subscriptions || []).reduce((acc, sub) => {
-    acc[sub.plan_name] = (acc[sub.plan_name] || 0) + 1;
+  const now = new Date();
+  const activeSubscriptions = (subscriptions || []).filter((sub: any) => {
+    if (sub.is_manual && sub.current_period_end) {
+      const end = new Date(sub.current_period_end as any);
+      if (Number.isNaN(end.getTime())) return false;
+      return end >= now;
+    }
+    return true;
+  });
+
+  const subsByPlan = activeSubscriptions.reduce((acc: Record<string, number>, sub: any) => {
+    const plan = sub.plan_name || "free";
+    acc[plan] = (acc[plan] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
+
+  const manualSubsCount = activeSubscriptions.filter((sub: any) => sub.is_manual).length;
 
   // Tickets pendientes
   const { count: pendingTickets } = await supabase
@@ -27,7 +40,6 @@ export default async function AdminDashboard() {
     .eq("status", "pending");
 
   // Facturas del mes
-  const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const { count: monthlyInvoices } = await supabase
     .from("invoices")
@@ -59,8 +71,8 @@ export default async function AdminDashboard() {
         />
         <StatCard
           title="Suscripciones activas"
-          value={(subscriptions || []).length}
-          subtitle={`Básico: ${subsByPlan["basico"] || 0} · Pro: ${subsByPlan["pro"] || 0}`}
+          value={activeSubscriptions.length}
+          subtitle={`Básico: ${subsByPlan["basico"] || 0} · Pro: ${subsByPlan["pro"] || 0} · Manuales: ${manualSubsCount}`}
           icon="💳"
           color="emerald"
         />

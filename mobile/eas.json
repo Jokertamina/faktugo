@@ -23,6 +23,7 @@
       }
     },
     "production": {
+      "distribution": "store",
       "ios": {
         "buildConfiguration": "Release"
       },

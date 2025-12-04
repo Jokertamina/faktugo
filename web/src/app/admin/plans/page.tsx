@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 
 interface Plan {
   id: string;
@@ -86,11 +87,19 @@ export default function AdminPlansPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-50">Gestión de Planes</h1>
-        <p className="mt-1 text-sm text-slate-400">
-          Edita los límites y características de cada plan. Los cambios se aplican inmediatamente.
-        </p>
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-50">Gestión de Planes</h1>
+          <p className="mt-1 text-sm text-slate-400">
+            Edita los límites y características de cada plan. Los cambios se aplican inmediatamente.
+          </p>
+        </div>
+        <Link
+          href="/admin"
+          className="text-xs text-slate-400 hover:text-slate-200"
+        >
+          860 Volver al panel
+        </Link>
       </div>
 
       {/* Plans Grid - Responsive */}

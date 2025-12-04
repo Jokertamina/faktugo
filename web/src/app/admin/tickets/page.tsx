@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 
 interface Ticket {
   id: string;
@@ -96,18 +97,26 @@ export default function AdminTicketsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-50">
-          Tickets de Soporte
-          {pendingCount > 0 && (
-            <span className="ml-2 rounded-full bg-amber-500 px-2 py-0.5 text-sm text-slate-900">
-              {pendingCount} pendientes
-            </span>
-          )}
-        </h1>
-        <p className="mt-1 text-sm text-slate-400">
-          Gestiona las solicitudes de soporte de usuarios Pro
-        </p>
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-50">
+            Tickets de Soporte
+            {pendingCount > 0 && (
+              <span className="ml-2 rounded-full bg-amber-500 px-2 py-0.5 text-sm text-slate-900">
+                {pendingCount} pendientes
+              </span>
+            )}
+          </h1>
+          <p className="mt-1 text-sm text-slate-400">
+            Gestiona las solicitudes de soporte de usuarios Pro
+          </p>
+        </div>
+        <Link
+          href="/admin"
+          className="text-xs text-slate-400 hover:text-slate-200"
+        >
+          860 Volver al panel
+        </Link>
       </div>
 
       {/* Filters */}
