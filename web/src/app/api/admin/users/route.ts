@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServerClient, getSupabaseServiceClient } from "@/lib/supabaseServer";
+import { getUserSubscription } from "@/lib/subscription";
 
 // Verificar si el usuario es admin
 async function verifyAdmin() {
@@ -41,16 +42,7 @@ export async function GET(request: Request) {
         last_name,
         company_name,
         created_at,
-        is_admin,
-        subscriptions!left (
-          id,
-          plan_name,
-          status,
-          current_period_end,
-          is_manual,
-          assigned_at,
-          manual_reason
-        )
+        is_admin
       `)
       .order("created_at", { ascending: false })
       .limit(limit);
@@ -67,7 +59,6 @@ export async function GET(request: Request) {
     }
 
     // Obtener emails de auth.users
-    const userIds = (data || []).map(u => u.id);
     const { data: authUsers } = await auth.supabase.auth.admin.listUsers();
     
     const emailMap = new Map<string, string>();
@@ -75,41 +66,39 @@ export async function GET(request: Request) {
       emailMap.set(u.id, u.email || "");
     }
 
-    // Combinar datos
-    const now = new Date();
-    const users = (data || []).map(user => {
-      // Obtener la suscripción activa (si existe), ignorando suscripciones manuales expiradas
-      const subs = Array.isArray(user.subscriptions) ? user.subscriptions : [];
-      const activeSub = subs.find((s: any) => {
-        const isStatusActive = s.status === "active" || s.status === "trialing";
-        if (!isStatusActive) return false;
-        if (s.is_manual && s.current_period_end) {
-          const end = new Date(s.current_period_end);
-          if (Number.isNaN(end.getTime())) return false;
-          return end >= now;
-        }
-        return true;
-      });
+    // Combinar datos con el estado de suscripción real de cada usuario
+    const users = await Promise.all(
+      (data || []).map(async (user) => {
+        const subscription = await getUserSubscription(auth.supabase, user.id);
 
-      return {
-        id: user.id,
-        displayName: user.display_name || `${user.first_name || ""} ${user.last_name || ""}`.trim() || "Sin nombre",
-        companyName: user.company_name,
-        email: emailMap.get(user.id) || "",
-        createdAt: user.created_at,
-        isAdmin: user.is_admin,
-        subscription: activeSub ? {
-          id: activeSub.id,
-          plan: activeSub.plan_name || "free",
-          status: activeSub.status,
-          expiresAt: activeSub.current_period_end,
-          isManual: activeSub.is_manual,
-          assignedAt: activeSub.assigned_at,
-          reason: activeSub.manual_reason,
-        } : null,
-        currentPlan: activeSub?.plan_name || "free",
-      };
-    });
+        const hasPaidPlan = subscription.plan !== "free";
+
+        const adminSubscription = hasPaidPlan
+          ? {
+              plan: subscription.plan,
+              status: subscription.status,
+              expiresAt: subscription.currentPeriodEnd,
+              isManual: subscription.isManual ?? false,
+              assignedAt: subscription.assignedAt ?? null,
+              reason: subscription.manualReason ?? null,
+            }
+          : null;
+
+        return {
+          id: user.id,
+          displayName:
+            user.display_name ||
+            `${user.first_name || ""} ${user.last_name || ""}`.trim() ||
+            "Sin nombre",
+          companyName: user.company_name,
+          email: emailMap.get(user.id) || "",
+          createdAt: user.created_at,
+          isAdmin: user.is_admin,
+          subscription: adminSubscription,
+          currentPlan: subscription.plan,
+        };
+      })
+    );
 
     const { count: totalProfiles } = await auth.supabase
       .from("profiles")

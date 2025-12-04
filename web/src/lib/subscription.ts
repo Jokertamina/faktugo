@@ -132,6 +132,9 @@ export interface SubscriptionStatus {
   status: "active" | "trialing" | "past_due" | "canceled" | "inactive";
   limits: PlanLimits;
   currentPeriodEnd?: string;
+  isManual?: boolean;
+  manualReason?: string | null;
+  assignedAt?: string | null;
 }
 
 /**
@@ -147,7 +150,7 @@ export async function getUserSubscription(
 
   const { data: subscription } = await supabase
     .from("subscriptions")
-    .select("plan_name, status, current_period_end, is_manual")
+    .select("plan_name, status, current_period_end, is_manual, manual_reason, assigned_at")
     .eq("user_id", userId)
     .in("status", ["active", "trialing", "past_due"])
     .order("created_at", { ascending: false })
@@ -188,6 +191,9 @@ export async function getUserSubscription(
     status: subscription.status as SubscriptionStatus["status"],
     limits: toLimits(planConfig),
     currentPeriodEnd: subscription.current_period_end,
+    isManual: (subscription as any).is_manual ?? false,
+    manualReason: (subscription as any).manual_reason ?? null,
+    assignedAt: (subscription as any).assigned_at ?? null,
   };
 }
 
