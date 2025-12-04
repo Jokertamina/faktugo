@@ -32,8 +32,9 @@ export default async function UploadInvoicesPage() {
   // Obtener información de uso
   const subscription = await getUserSubscription(supabase, user.id);
   const monthlyCount = await getMonthlyInvoiceCount(supabase, user.id);
-  const limit = subscription.limits.invoicesPerMonth;
-  const remaining = Math.max(0, limit - monthlyCount);
+  const limit = isAdmin ? Infinity : subscription.limits.invoicesPerMonth;
+  const remaining =
+    limit === Infinity ? Infinity : Math.max(0, limit - monthlyCount);
   const canSendToGestoriaPlan = subscription.limits.canSendToGestoria;
   const canSendToGestoria = isAdmin ? true : canSendToGestoriaPlan;
 

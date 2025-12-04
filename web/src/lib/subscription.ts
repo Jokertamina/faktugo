@@ -131,6 +131,7 @@ export interface SubscriptionStatus {
   planConfig: PlanConfig;
   status: "active" | "trialing" | "past_due" | "canceled" | "inactive";
   limits: PlanLimits;
+  currentPeriodStart?: string;
   currentPeriodEnd?: string;
   isManual?: boolean;
   manualReason?: string | null;
@@ -150,7 +151,9 @@ export async function getUserSubscription(
 
   const { data: subscription } = await supabase
     .from("subscriptions")
-    .select("plan_name, status, current_period_end, is_manual, manual_reason, assigned_at")
+    .select(
+      "plan_name, status, current_period_start, current_period_end, is_manual, manual_reason, assigned_at"
+    )
     .eq("user_id", userId)
     .in("status", ["active", "trialing", "past_due"])
     .order("created_at", { ascending: false })
@@ -190,6 +193,7 @@ export async function getUserSubscription(
     planConfig,
     status: subscription.status as SubscriptionStatus["status"],
     limits: toLimits(planConfig),
+    currentPeriodStart: (subscription as any).current_period_start ?? undefined,
     currentPeriodEnd: subscription.current_period_end,
     isManual: (subscription as any).is_manual ?? false,
     manualReason: (subscription as any).manual_reason ?? null,
@@ -214,22 +218,52 @@ export async function isUserAdmin(
 }
 
 /**
- * Cuenta las facturas del mes actual para un usuario
+ * Cuenta las facturas del ciclo actual para un usuario.
+ *
+ * Para planes de pago (Stripe o manual) se usa el periodo de facturación
+ * [current_period_start, current_period_end]. Para el plan free o si no
+ * hay datos de periodo válidos, se usa el mes natural actual.
  */
 export async function getMonthlyInvoiceCount(
   supabase: SupabaseClient,
   userId: string
 ): Promise<number> {
   const now = new Date();
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+
+  // Obtener el estado de suscripción para determinar el ciclo
+  const subscription = await getUserSubscription(supabase, userId);
+
+  let periodStart: Date;
+  let periodEnd: Date;
+
+  if (
+    subscription.plan !== "free" &&
+    subscription.currentPeriodStart &&
+    subscription.currentPeriodEnd
+  ) {
+    const start = new Date(subscription.currentPeriodStart as any);
+    const end = new Date(subscription.currentPeriodEnd as any);
+
+    if (!Number.isNaN(start.getTime()) && !Number.isNaN(end.getTime())) {
+      periodStart = start;
+      periodEnd = end;
+    } else {
+      // Si las fechas no son válidas, caer a mes natural
+      periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+    }
+  } else {
+    // Plan free o sin datos de periodo: usar mes natural
+    periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+  }
 
   const { count } = await supabase
     .from("invoices")
     .select("id", { count: "exact", head: true })
     .eq("user_id", userId)
-    .gte("created_at", startOfMonth.toISOString())
-    .lte("created_at", endOfMonth.toISOString());
+    .gte("created_at", periodStart.toISOString())
+    .lte("created_at", periodEnd.toISOString());
 
   return count || 0;
 }

@@ -217,14 +217,14 @@ export default async function AnalyticsPage({
 
   const isAdmin = profile?.is_admin === true;
   const subscription = await getUserSubscription(supabase as any, user.id);
-  const invoicesThisMonth = await getMonthlyInvoiceCount(supabase as any, user.id);
+  const invoicesThisCycle = await getMonthlyInvoiceCount(supabase as any, user.id);
   const effectivePlanLimit = isAdmin ? Infinity : subscription.limits.invoicesPerMonth;
   const remaining =
-    effectivePlanLimit === Infinity ? Infinity : Math.max(effectivePlanLimit - invoicesThisMonth, 0);
+    effectivePlanLimit === Infinity ? Infinity : Math.max(effectivePlanLimit - invoicesThisCycle, 0);
   const usagePercent =
     effectivePlanLimit === Infinity || effectivePlanLimit === 0
       ? 0
-      : Math.min(100, (invoicesThisMonth / effectivePlanLimit) * 100);
+      : Math.min(100, (invoicesThisCycle / effectivePlanLimit) * 100);
 
   // Estadísticas hacia gestoría (mes actual)
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -384,7 +384,7 @@ export default async function AnalyticsPage({
                   </span>
                 </p>
                 <p className="text-xs text-slate-400">
-                  Facturas subidas este mes: {invoicesThisMonth}
+                  Facturas subidas en tu ciclo actual: {invoicesThisCycle}
                   {effectivePlanLimit === Infinity
                     ? " (sin límite por ser cuenta admin)"
                     : ` de ${effectivePlanLimit}`}
@@ -399,8 +399,8 @@ export default async function AnalyticsPage({
                     </div>
                     <p className="mt-1 text-[11px] text-slate-400">
                       {remaining === 0
-                        ? "Has alcanzado el límite de tu plan para este mes."
-                        : `Te quedan ${remaining} facturas este mes antes de llegar al límite.`}
+                        ? "Has alcanzado el límite de tu plan en este ciclo."
+                        : `Te quedan ${remaining} facturas en este ciclo antes de llegar al límite.`}
                     </p>
                   </div>
                 )}
